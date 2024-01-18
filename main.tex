@@ -1,0 +1,110 @@
+\documentclass[12pt]{article}
+\usepackage{geometry}
+\usepackage{enumitem}
+
+\geometry{a4paper, margin=0.75in}
+
+\begin{document}
+
+\title{\textbf{DBMS Project Overview: Gada Electronics Online Retail Store}}
+\author{Group 10 \\ Vikranth Udandarao, Tharun Harish, Hemanth Dindigullu, Aditya Prasad}
+\date{}
+\maketitle
+
+\section*{Project Scope}
+Gada Electronics Online Retail Store aims to create an efficient online platform offering a diverse range of electronic products. Customers can seamlessly browse, purchase, and track orders. Warehouse managers have tools to manage inventory effortlessly. The system integrates loyalty programs and location-based trends for an enhanced user experience.
+
+\section*{Functional Requirements}
+
+\subsection*{Customer Module}
+\begin{enumerate}[label=\arabic*.]
+    \item \textbf{Sign Up / Login:}
+          \begin{itemize}
+              \item Customers can create accounts using their name, email, phone number, and a password.
+              \item Login using email/phone and password and then add or select the address.
+          \end{itemize}
+    \item \textbf{View Products:}
+          \begin{itemize}
+              \item Customers can browse products categorized into different electronic types (Laptops, Mobile Phones, etc.).
+          \end{itemize}
+    \item \textbf{Add to Cart:}
+          \begin{itemize}
+              \item Customers can add products to their cart for future purchase.
+          \end{itemize}
+    \item \textbf{Payment:}
+          \begin{itemize}
+              \item Customers can make payments for their orders.
+          \end{itemize}
+    \item \textbf{Buy:}
+          \begin{itemize}
+              \item Confirm and complete the purchase.
+          \end{itemize}
+\end{enumerate}
+
+\subsection*{Warehouse Manager Module}
+\begin{enumerate}[label=\arabic*.]
+    \item \textbf{Sign Up / Login:}
+          \begin{itemize}
+              \item Warehouse managers can create accounts using their name, email, phone number, and a password.
+              \item Login using email/phone and password.
+          \end{itemize}
+    \item \textbf{Manage Products:}
+          \begin{itemize}
+              \item Add, update, and delete products.
+              \item Update product descriptions.
+          \end{itemize}
+\end{enumerate}
+
+\section*{Features}
+\begin{enumerate}[label=\arabic*.]
+    \item \textbf{Loyalty:}
+          \begin{itemize}
+              \item Implement a loyalty program to reward repeat customers.
+          \end{itemize}
+    \item \textbf{Location-Based Trends:}
+          \begin{itemize}
+              \item Analyze customer data to provide location-based product recommendations and discounts.
+          \end{itemize}
+\end{enumerate}
+
+\section*{Database Entities}
+
+\subsection*{Customer Entity}
+\begin{itemize}
+    \item \textbf{CustomerID (Primary Key)}
+    \item Name
+    \item Email
+    \item Phone no
+    \item Passwor
+
+\end{itemize}
+
+\subsection*{Address Entity}
+\begin{itemize}
+    \item \textbf{AddressID (Primary Key)}
+    \item \textbf{CustomerID (Foreign Key)}
+    \item Address detail
+
+\end{itemize}
+
+\subsection*{Product Entity}
+\begin{itemize}
+    \item \textbf{ProductID (Primary Key)}
+    \item Manufacturer
+    \item Name
+    \item Price
+    \item Description
+    \item Quantity
+    \item Discount
+
+\end{itemize}
+
+\section*{Technical Requirements}
+\begin{itemize}
+    \item We plan on using HTML, CSS, and JavaScript languages for the front end.
+    \item We plan on using Flask and Python for the back end.
+    \item We plan on using MySQL for the database.
+
+\end{itemize}
+
+\end{document}
