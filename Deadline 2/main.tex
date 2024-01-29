@@ -1,0 +1,75 @@
+
+\documentclass[12pt]{article}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\geometry{a4paper, margin=0.5in}
+
+\begin{document}
+
+\title{\textbf{DBMS Project ER and Relational Model\\ Gada Electronics Online Retail Store}}
+\author{Group 10 \\ Vikranth Udandarao - 22570, Tharun Harish - 22541,\\ Hemanth Dindigallu - 22212, Aditya Prasad - 22036}
+\date{}
+\maketitle
+
+\section*{ER Diagram}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{ER Model.png}
+    \caption{ER Diagram for Gada Electronics Online Retail Store}
+    \label{fig:er_diagram}
+\end{figure}
+
+\begin{enumerate}
+    \href{https://lucid.app/lucidchart/dbe56fd5-655a-4600-acc3-cc27ac2c8d4d/edit?viewport_loc=-1491%2C-1362%2C4992%2C2421%2C0_0&invitationId=inv_fde4bde2-1525-455f-a9b6-ca4cec350a77}{ER Diagram Lucidchart Link}
+\end{enumerate}
+
+\clearpage
+
+\section*{Relational Model}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{Relational Model.png}
+    \caption{Relational Model for Gada Electronics Online Retail Store}
+    \label{fig:relational_model}
+\end{figure}
+
+\begin{enumerate}
+    \href{https://lucid.app/lucidchart/f0f83a9c-e4e7-40b4-8084-4aa469b2c117/edit?viewport_loc=-2090%2C-1218%2C3787%2C1837%2C2r69nEUlK38n&invitationId=inv_fe50a5de-ddfc-41c6-aecb-986d3631892c}{Relational Model Lucidchart Link}
+\end{enumerate}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \textbf{Table Name} & \textbf{Attributes} & \textbf{Primary Key} \\
+        \hline
+        Customers & CustomerID, Name, Email, Phone & CustomerID \\
+        \hline
+        Products & ProductID, Name, Price, Stock & ProductID \\
+        \hline
+        Orders & OrderID, CustomerID, ProductID, Quantity, Total & OrderID \\
+        \hline
+        Cart & CartID, CustomerID, ProductID, Price, Offer, Quantity & CartID \\
+        \hline
+        Address & AddressID, CustomerID, Street, City, State, Pincode & AddressID \\
+        \hline
+        Payment & PaymentID, CustomerID, CartID, Status, & PaymentID \\
+        \hline
+        Warehouse Manager & ManagerID, Username, Password & ManagerID \\
+        \hline
+        Warehouse & Pincode, ProductID, Warehouse Quantity & Pincode\\
+        \hline
+    \end{tabular}
+    \caption{Relational Model for Gada Electronics Online Retail Store}
+    \label{tab:relational_model}
+\end{table}
+
+\section*{Contributions}
+All the group members contributed equally to this submission.
+
+\end{document}
