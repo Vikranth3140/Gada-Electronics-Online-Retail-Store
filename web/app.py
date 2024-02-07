@@ -22,9 +22,9 @@ def mysql_connection():
 def encrypt_password(password):
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=15))
 
-def generate_customer_id(length=8):
-    characters = string.ascii_letters + string.digits
-    return ''.join(random.choice(characters) for _ in range(length))
+def generate_customer_id(length=6):
+    characters = "".join(set(string.ascii_letters.upper())) + string.digits
+    return ''.join(random.choice(characters).capitalize() for _ in range(length))
 
 
 @app.route('/customer')

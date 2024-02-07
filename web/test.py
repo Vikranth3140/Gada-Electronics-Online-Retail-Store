@@ -1,14 +1,17 @@
 import mysql.connector
 import bcrypt
+import json
+import string
+import random
 
-def mysql_connection():
-    conn = mysql.connector.connect(
-        host='',
-        user='',
-        password='',
-        database=''
-    )
-    return conn
+# def mysql_connection():
+#     conn = mysql.connector.connect(
+#         host='',
+#         user='',
+#         password='',
+#         database=''
+#     )
+#     return conn
 
 # conn = mysql_connection()
 # cursor = conn.cursor()
@@ -32,12 +35,11 @@ def mysql_connection():
 # import random
 # import string
 
-# def generate_customer_id(length=8):
-#     characters = string.ascii_letters + string.digits
-#     return ''.join(random.choice(characters) for _ in range(length))
+def generate_customer_id(length=8):
+    characters = "".join(set(string.ascii_letters.upper())) + string.digits
+    print(characters)
+    return ''.join(random.choice(characters) for _ in range(length))
 
 # # Generate a random customer ID
-# customer_id = generate_customer_id()
-# print("Generated Customer ID:", customer_id)
-
-
+customer_id = generate_customer_id()
+print("Generated Customer ID:", customer_id)
