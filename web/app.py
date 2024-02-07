@@ -3,15 +3,19 @@ import bcrypt
 import mysql.connector
 import random
 import string
+import json
 
 app = Flask(__name__)
 
 def mysql_connection():
+    with open("config.json", "r") as file:
+        data = json.load(file)
+
     conn = mysql.connector.connect(
-        host='',
-        user='',
-        password='',
-        database=''
+        host=data['host'],
+        user=data['user'],
+        password=data['password'],
+        database=data['database']
     )
     return conn
 
