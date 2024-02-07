@@ -4,11 +4,15 @@ import mysql.connector
 import random
 import string
 import json
+import os
 
-app = Flask(__name__)
+application = app = Flask(__name__)
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+config_path = os.path.join(basedir, 'config.json')
 
 def mysql_connection():
-    with open("config.json", "r") as file:
+    with open(config_path, "r") as file:
         data = json.load(file)
 
     conn = mysql.connector.connect(
