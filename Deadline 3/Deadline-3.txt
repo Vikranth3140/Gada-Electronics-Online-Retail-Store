@@ -1,25 +1,8 @@
-\documentclass[12pt]{article}
-\usepackage{geometry}
-\usepackage{enumitem}
-\usepackage{graphicx}
-\usepackage{hyperref}
+﻿CREATE DATABASE gada_electronics;
 
-\geometry{a4paper, margin=0.5in}
-
-\begin{document}
-
-\title{\textbf{DBMS Project\\ Gada Electronics Online Retail Store}}
-\author{Group 10 \\ Vikranth Udandarao - 22570, Tharun Harish - 22541, \\ Hemanth Dindigallu - 22212, Aditya Prasad - 22036}
-\date{}
-\maketitle
-
-\section*{SQL Queries}
-
-\begin{verbatim}
-
-CREATE DATABASE gada_electronics;
 
 USE gada_electronics;
+
 
 DROP TABLE IF EXISTS Customer;
 DROP TABLE IF EXISTS Address;
@@ -40,6 +23,7 @@ CREATE TABLE Customer (
     PRIMARY KEY (Customer_ID)
 );
 
+
 CREATE TABLE Address (
     Address_ID VARCHAR(20) NOT NULL,
     Customer_ID VARCHAR(20) NOT NULL,
@@ -53,6 +37,7 @@ CREATE TABLE Address (
     FOREIGN KEY (Customer_ID) REFERENCES Customer(Customer_ID)
 );
 
+
 CREATE TABLE Product (
     Product_ID VARCHAR(20) NOT NULL,
     Manufacturer VARCHAR(255) NOT NULL,
@@ -64,6 +49,7 @@ CREATE TABLE Product (
     PRIMARY KEY (Product_ID)
 );
 
+
 CREATE TABLE Warehouse (
     Pincode VARCHAR(20) NOT NULL,
     Product_ID VARCHAR(20) NOT NULL,
@@ -72,12 +58,14 @@ CREATE TABLE Warehouse (
     FOREIGN KEY (Product_ID) REFERENCES Product(Product_ID)
 );
 
+
 CREATE TABLE Warehouse_Manager (
     Manager_ID VARCHAR(20) NOT NULL,
     Username VARCHAR(255) NOT NULL UNIQUE,
     Password VARCHAR(255) NOT NULL,
     PRIMARY KEY (Manager_ID)
 );
+
 
 CREATE TABLE Cart (
     Cart_ID VARCHAR(20) NOT NULL,
@@ -91,6 +79,7 @@ CREATE TABLE Cart (
     FOREIGN KEY (Product_ID) REFERENCES Product(Product_ID)
 );
 
+
 CREATE TABLE Payment (
     Payment_ID VARCHAR(20) NOT NULL,
     Customer_ID VARCHAR(20) NOT NULL,
@@ -102,6 +91,7 @@ CREATE TABLE Payment (
     -- Optionally, add CHECK constraints for Status if there are specific allowed values
 );
 
+
 CREATE TABLE Orders (
     Order_ID VARCHAR(20) NOT NULL,
     Customer_ID VARCHAR(20) NOT NULL,
@@ -111,7 +101,9 @@ CREATE TABLE Orders (
     FOREIGN KEY (Payment_ID) REFERENCES Payment(Payment_ID)
 );
 
+
 SHOW TABLES;
+
 
 INSERT INTO Customer (Customer_ID, Name, Email, PhoneNo, Password) VALUES
 ('CUST001', 'John Doe', 'johndoe@example.com', '1234567890', 'password123'),
@@ -127,6 +119,7 @@ INSERT INTO Customer (Customer_ID, Name, Email, PhoneNo, Password) VALUES
 ('CUST011', 'Christopher Anderson', 'chrisanderson@example.com', '1234506789', 'pass12345'),
 ('CUST012', 'Isabella Rodriguez', 'isabellarodriguez@example.com', '2345607891', 'pass23456');
 
+
 INSERT INTO Address (Address_ID, Customer_ID, Street_Name, Flat_No, City, State, Pincode) VALUES
 ('ADDR001', 'CUST001', 'MG Road', '101', 'Bengaluru', 'KA', '560001'),
 ('ADDR002', 'CUST002', 'Park Street', '202', 'Kolkata', 'WB', '700016'),
@@ -140,6 +133,7 @@ INSERT INTO Address (Address_ID, Customer_ID, Street_Name, Flat_No, City, State,
 ('ADDR010', 'CUST010', 'Jubilee Hills', '1010', 'Hyderabad', 'TS', '500033'),
 ('ADDR011', 'CUST011', 'Bapu Nagar', '1111', 'Jaipur', 'RJ', '302015'),
 ('ADDR012', 'CUST012', 'Indiranagar', '1212', 'Bengaluru', 'KA', '560038');
+
 
 INSERT INTO Product (Product_ID, Manufacturer, Name, Price, Description, Quantity, Discount) VALUES
 ('PROD001', 'TechGadgets', 'Smartphone', 999.99, 'Latest model with advanced features', 100, 10),
@@ -155,6 +149,7 @@ INSERT INTO Product (Product_ID, Manufacturer, Name, Price, Description, Quantit
 ('PROD011', 'HomeComfort', 'Air Conditioner', 1000.00, 'Energy-efficient cooling and heating', 40, 5),
 ('PROD012', 'TechGadgets', 'Smart Watch', 250.00, 'Fitness tracking and notifications', 200, 20);
 
+
 INSERT INTO Warehouse (Pincode, Product_ID, Warehouse_Quantity) VALUES
 ('62704', 'PROD001', 20),
 ('06830', 'PROD002', 15),
@@ -169,8 +164,10 @@ INSERT INTO Warehouse (Pincode, Product_ID, Warehouse_Quantity) VALUES
 ('90001', 'PROD011', 15),
 ('33101', 'PROD012', 40);
 
+
 INSERT INTO Warehouse_Manager (Manager_ID, Username, Password) VALUES
 ('WM001', 'manager1', 'wm_password1');
+
 
 INSERT INTO Cart (Cart_ID, Customer_ID, Product_ID, Price, Offer, Quantity) VALUES
 ('CART001', 'CUST001', 'PROD001', 999.99, 10, 1),
@@ -186,6 +183,7 @@ INSERT INTO Cart (Cart_ID, Customer_ID, Product_ID, Price, Offer, Quantity) VALU
 ('CART011', 'CUST011', 'PROD011', 1000.00, 5, 1),
 ('CART012', 'CUST012', 'PROD012', 250.00, 20, 1);
 
+
 INSERT INTO Payment (Payment_ID, Customer_ID, Cart_ID, Status) VALUES
 ('PAY001', 'CUST001', 'CART001', 'Completed'),
 ('PAY002', 'CUST002', 'CART002', 'Completed'),
@@ -200,6 +198,7 @@ INSERT INTO Payment (Payment_ID, Customer_ID, Cart_ID, Status) VALUES
 ('PAY011', 'CUST011', 'CART011', 'Pending'),
 ('PAY012', 'CUST012', 'CART012', 'Pending');
 
+
 INSERT INTO Orders (Order_ID, Customer_ID, Payment_ID) VALUES
 ('ORD001', 'CUST001', 'PAY001'),
 ('ORD002', 'CUST002', 'PAY002'),
@@ -213,11 +212,3 @@ INSERT INTO Orders (Order_ID, Customer_ID, Payment_ID) VALUES
 ('ORD010', 'CUST010', 'PAY010'),
 ('ORD011', 'CUST011', 'PAY011'),
 ('ORD012', 'CUST012', 'PAY012');
-
-
-\end{verbatim}
-
-\section*{Contributions}
-All the group members contributed equally to this submission.
-
-\end{document}c:\Users\vikra\Downloads\DBMS_Deadline_3 (1).pdf
