@@ -58,16 +58,14 @@ GROUP BY p.Product_ID
 HAVING TotalSales > 1000;
 
 
--- Update stock quantities based on orders, ensuring the quantity does not drop below zero.
-UPDATE Warehouse w
-JOIN (
-  SELECT crt.Product_ID, SUM(crt.Quantity) AS QuantitySold
-  FROM Cart crt
-  JOIN Payment pay ON crt.Cart_ID = pay.Cart_ID
-  WHERE pay.Status = 'Completed'
-  GROUP BY crt.Product_ID
-) AS SoldItems ON w.Product_ID = SoldItems.Product_ID
-SET w.Warehouse_Quantity = GREATEST(w.Warehouse_Quantity - SoldItems.QuantitySold, 0);
+-- Display 'Address Not Provided' if Customer doesn’t have address.
+SELECT 
+    c.Customer_ID,
+    c.Name AS CustomerName,
+    IFNULL(CONCAT(a.Street, ', ', a.City, ', ', a.State), 'Address Not Provided') AS Address
+FROM 
+    Customer c
+LEFT JOIN Address a ON c.Customer_ID = a.Customer_ID;
 
 
 -- Display top 3 most frequently purchased products.
