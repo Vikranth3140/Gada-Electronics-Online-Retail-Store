@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Page</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Payment Page</h1>
+    </header>
+    <main>
+        <section>
+            <h2>Select Payment Method</h2>
+            <form id="payment-form">
+                <div class="form-group">
+                    <input type="radio" id="card" name="payment-method" value="card" checked>
+                    <label for="card">Credit/Debit Card</label>
+                </div>
+                <div class="form-group">
+                    <input type="radio" id="net-banking" name="payment-method" value="net-banking">
+                    <label for="net-banking">Net Banking</label>
+                </div>
+                <div class="form-group">
+                    <input type="radio" id="upi" name="payment-method" value="upi">
+                    <label for="upi">UPI</label>
+                </div>
+                <div class="payment-details" id="card-details">
+                    <h3>Enter Card Details</h3>
+                    <div class="form-group">
+                        <label for="card-number">Card Number:</label>
+                        <input type="text" id="card-number" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="expiry-date">Expiry Date:</label>
+                        <input type="text" id="expiry-date" placeholder="MM/YY" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cvv">CVV:</label>
+                        <input type="text" id="cvv" required>
+                    </div>
+                </div>
+                <div class="payment-details" id="net-banking-details" style="display: none;">
+                    <h3>Select Bank</h3>
+                    <select id="bank-select">
+                        <option value="bank1">Bank 1</option>
+                        <option value="bank2">Bank 2</option>
+                        <option value="bank3">Bank 3</option>
+                        <!-- Add more banks as needed -->
+                    </select>
+                </div>
+                <div class="payment-details" id="upi-details" style="display: none;">
+                    <h3>Enter UPI ID</h3>
+                    <div class="form-group">
+                        <label for="upi-id">UPI ID:</label>
+                        <input type="text" id="upi-id" required>
+                    </div>
+                </div>
+                <button id="payment-button">Pay Now</button> <!-- Modified line -->
+
+            </form>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 Gada Electronics. All rights reserved.</p>
+    </footer>
+
+    <script src="script_payment.js"></script>
+    <script>
+        document.getElementById("payment-button").addEventListener("click", function() {
+            window.location.href = "address.html";
+        });
+    </script>
+</body>
+</html>
