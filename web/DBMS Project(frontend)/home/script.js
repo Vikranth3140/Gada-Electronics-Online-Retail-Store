@@ -3,9 +3,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Sample data (you can replace it with data from your database)
     const products = [
-        { name: "Smartphone", price: "$999.99", description: "Latest model with advanced features" },
-        { name: "Smart TV", price: "$1200.00", description: "High definition smart TV with voice control" },
-        { name: "Bluetooth Speaker", price: "$150.00", description: "Portable high-quality sound" },
+        { name: "Smartphone", price: "$999.99", description: "Latest model with advanced features", image: "smartphone.jpeg" },
+        { name: "Smart TV", price: "$1200.00", description: "High definition smart TV with voice control", image: "smart_tv.jpeg" },
+        { name: "Bluetooth Speaker", price: "$150.00", description: "Portable high-quality sound", image: "speaker.jpg" },
         { name: "Laptop", price: "$1500.00", description: "Lightweight, high performance for professionals" },
         { name: "Microwave Oven", price: "$250.00", description: "Fast cooking with smart settings" },
         { name: "Treadmill", price: "$800.00", description: "Compact design with multiple exercise modes" },
@@ -16,7 +16,6 @@ document.addEventListener("DOMContentLoaded", function () {
         { name: "Air Conditioner", price: "$1000.00", description: "Energy-efficient cooling and heating" },
         { name: "Smart Watch", price: "$250.00", description: "Fitness tracking and notifications" }
     ];
-    
 
     // Function to create product cards
     function createProductCard(product) {
@@ -24,6 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
         card.classList.add("product-card");
 
         card.innerHTML = `
+            <img src="images/${product.image}" alt="${product.name}">
             <h3>${product.name}</h3>
             <p><strong>Price:</strong> ${product.price}</p>
             <p><strong>Description:</strong> ${product.description}</p>
@@ -38,3 +38,20 @@ document.addEventListener("DOMContentLoaded", function () {
         productContainer.appendChild(card);
     });
 });
+
+
+    // // Sample data (you can replace it with data from your database)
+    // const products = [
+    //     { name: "Smartphone", price: "$999.99", description: "Latest model with advanced features" },
+    //     { name: "Smart TV", price: "$1200.00", description: "High definition smart TV with voice control" },
+    //     { name: "Bluetooth Speaker", price: "$150.00", description: "Portable high-quality sound" },
+    //     { name: "Laptop", price: "$1500.00", description: "Lightweight, high performance for professionals" },
+    //     { name: "Microwave Oven", price: "$250.00", description: "Fast cooking with smart settings" },
+    //     { name: "Treadmill", price: "$800.00", description: "Compact design with multiple exercise modes" },
+    //     { name: "Video Game Console", price: "$300.00", description: "Latest gaming console with VR capabilities" },
+    //     { name: "Printer", price: "$200.00", description: "High-speed, efficient document printing" },
+    //     { name: "Tablet", price: "$600.00", description: "Lightweight and powerful for on-the-go use" },
+    //     { name: "Headphones", price: "$100.00", description: "Noise-cancelling, long battery life" },
+    //     { name: "Air Conditioner", price: "$1000.00", description: "Energy-efficient cooling and heating" },
+    //     { name: "Smart Watch", price: "$250.00", description: "Fitness tracking and notifications" }
+    // ];
