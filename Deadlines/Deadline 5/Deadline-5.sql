@@ -1,6 +1,10 @@
+CREATE DATABASE gada_electronics;
+
 
 USE gada_electronics;
 
+
+DROP TABLE IF EXISTS Customer;
 DROP TABLE IF EXISTS Orders;
 DROP TABLE IF EXISTS Payment;
 DROP TABLE IF EXISTS Cart;
@@ -31,7 +35,6 @@ CREATE TABLE Address (
     Pincode VARCHAR(20) NOT NULL,
     PRIMARY KEY (Address_ID),
     FOREIGN KEY (Customer_ID) REFERENCES Customer(Customer_ID)
-    -- Optionally, add UNIQUE or CHECK constraints here
 );
 
 CREATE TABLE Product (
@@ -45,7 +48,6 @@ CREATE TABLE Product (
     Quantity INT NOT NULL CHECK (Quantity >= 0),
     Discount DECIMAL(5, 2) NOT NULL CHECK (Discount >= 0 AND Discount <= 100),
     PRIMARY KEY (Product_ID)
-    -- Optionally, add UNIQUE constraints here
 );
 
 
@@ -87,7 +89,6 @@ CREATE TABLE Payment (
     PRIMARY KEY (Payment_ID),
     FOREIGN KEY (Customer_ID) REFERENCES Customer(Customer_ID),
     FOREIGN KEY (Cart_ID) REFERENCES Cart(Cart_ID)
-    -- Optionally, add CHECK constraints for Status if there are specific allowed values
 );
 
 CREATE TABLE Orders (
@@ -233,6 +234,8 @@ INSERT INTO Orders (Order_ID, Customer_ID, Payment_ID) VALUES
 ('ORD001', 'CUST001', 'PAY001');
 
 
+
+
 DELIMITER //
 CREATE TRIGGER total_price
 AFTER INSERT ON Cart
@@ -251,6 +254,7 @@ BEGIN
 END;
 //
 DELIMITER ;
+
 
 DELIMITER //
 CREATE TRIGGER mark_sold_out
