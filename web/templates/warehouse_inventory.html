@@ -1,0 +1,45 @@
+{% extends 'adminbase.html' %}
+{% block title %}Warehouse Inventory{% endblock %}
+{% block content %}
+
+
+
+<div class="container mt-4">
+    <h1 class="mb-4">Select Warehouse</h1>
+    <form method="POST" class="mb-3">
+        <div class="mb-3">
+            <select name="warehouse_pincode" class="form-select">
+                {% for warehouse in warehouses %}
+                <option value="{{ warehouse.Pincode }}" {% if selected_warehouse==warehouse.Pincode %}selected{% endif
+                    %}>{{ warehouse.Pincode }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">View Inventory</button>
+    </form>
+    {% if products %}
+    <h2>Inventory for Warehouse: {{ selected_warehouse }}</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-bordered">
+            <thead>
+                <tr>
+                    <th>Product ID</th>
+                    <th>Name</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>{{ product.Product_ID }}</td>
+                    <td>{{ product.Name }}</td>
+                    <td>{{ product.Warehouse_Quantity }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

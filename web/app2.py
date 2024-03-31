@@ -790,5 +790,60 @@ def index():
     categories_dict = [{'name': category[0], 'url': category[1]} for category in categories]
     return render_template('home.html', categories=categories_dict)
 
+
+@app.route('/warehouse/inventory', methods=['GET', 'POST'])
+def warehouse_inventory():
+    conn = mysql_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT DISTINCT Pincode FROM Warehouse")
+    warehouses = cursor.fetchall()
+    selected_warehouse = request.form.get('warehouse_pincode')
+    products = []
+    if selected_warehouse:
+        cursor.execute("SELECT * FROM Product JOIN Warehouse ON Product.Product_ID = Warehouse.Product_ID WHERE Warehouse.Pincode = %s", (selected_warehouse,))
+        products = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return render_template('warehouse_inventory.html', warehouses=warehouses, products=products, selected_warehouse=selected_warehouse)
+
+@app.route('/warehouse/add_product', methods=['GET', 'POST'])
+def add_product_to_warehouse():
+    if request.method == 'POST':
+        # Extract form data
+        product_details = {
+            'Product_ID': request.form['product_id'],
+            'Manufacturer': request.form['manufacturer'],
+            'Name': request.form['name'],
+            'Price': request.form['price'],
+            'Category': request.form['category'],
+            'ImgURL': request.form['imgurl'],
+            'Description': request.form['description'],
+            'Discount': request.form['discount'],
+            'Pincode': request.form['pincode'],
+            'Warehouse_Quantity': request.form['warehouse_quantity']
+        }
+        # Insert the new product into the Product table and Warehouse table
+        conn = mysql_connection()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO Product (Product_ID, Manufacturer, Name, Price, Category, ImgURL, Description, Discount) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                       (product_details['Product_ID'], product_details['Manufacturer'], product_details['Name'], product_details['Price'], product_details['Category'], product_details['ImgURL'], product_details['Description'], product_details['Discount']))
+        cursor.execute("INSERT INTO Warehouse (Pincode, Product_ID, Warehouse_Quantity) VALUES (%s, %s, %s)",
+                       (product_details['Pincode'], product_details['Product_ID'], product_details['Warehouse_Quantity']))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        flash('Product added successfully!')
+        return redirect(url_for('add_product_to_warehouse'))
+    
+    # Get all pincodes for the form
+    conn = mysql_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT DISTINCT Pincode FROM Warehouse")
+    pincodes = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return render_template('add_product.html', pincodes=pincodes)
+
+
 if __name__ == '__main__':
     app.run(debug=True)

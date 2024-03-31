@@ -1,0 +1,47 @@
+{% extends 'adminbase.html' %}
+{% block title %}Add Product{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+    <h1 class="mb-4">Add New Product to Warehouse</h1>
+    <form method="POST">
+        <div class="mb-3">
+            <input type="text" name="product_id" class="form-control" placeholder="Product ID" required>
+        </div>
+        <div class="mb-3">
+            <input type="text" name="manufacturer" class="form-control" placeholder="Manufacturer" required>
+        </div>
+        <div class="mb-3">
+            <input type="text" name="name" class="form-control" placeholder="Product Name" required>
+        </div>
+        <div class="mb-3">
+            <input type="text" name="price" class="form-control" placeholder="Price" required>
+        </div>
+        <div class="mb-3">
+            <input type="text" name="category" class="form-control" placeholder="Category" required>
+        </div>
+        <div class="mb-3">
+            <input type="text" name="imgurl" class="form-control" placeholder="Image URL" required>
+        </div>
+        <div class="mb-3">
+            <textarea name="description" class="form-control" placeholder="Description" required></textarea>
+        </div>
+        <div class="mb-3">
+            <input type="text" name="discount" class="form-control" placeholder="Discount" required>
+        </div>
+        <div class="mb-3">
+            <select name="pincode" class="form-select" required>
+                {% for pincode in pincodes %}
+                <option value="{{ pincode.Pincode }}">{{ pincode.Pincode }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <input type="number" name="warehouse_quantity" class="form-control" placeholder="Quantity in Warehouse"
+                required>
+        </div>
+        <button type="submit" class="btn btn-success">Add Product</button>
+    </form>
+</div>
+
+{% endblock %}
