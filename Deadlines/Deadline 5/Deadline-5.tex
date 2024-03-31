@@ -1,0 +1,171 @@
+\documentclass[12pt]{article}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\geometry{a4paper, margin=0.5in}
+
+\begin{document}
+
+\title{\textbf{DBMS Project\\ Gada Electronics Online Retail Store}}
+\author{Group 10 \\ Vikranth Udandarao - 22570, Tharun Harish - 22541, \\ Hemanth Dindigallu - 22212, Aditya Prasad - 22036}
+\date{}
+\maketitle
+
+\section*{Embedded SQL Queries}
+
+\begin{verbatim}
+
+1. def insert_new_cart_and_payment(cursor, cart_id, customer_id):
+        """Inserts a new cart and pending payment into the database."""
+        # cursor.execute("INSERT INTO Cart (Cart_ID, Customer_ID) VALUES (%s, %s)", (cart_id, customer_id))
+        cursor.execute("INSERT INTO Payment (Payment_ID, Customer_ID, Cart_ID, Status) VALUES (%s, %s, %s, 'Pending')", 
+                       ('PAY' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)), customer_id, cart_id))
+
+2. def find_nearest_warehouse(customer_address_id):
+        conn = mysql_connection()
+        cursor = conn.cursor(dictionary=True)
+    
+        # Get the customer's pin code
+        cursor.execute("SELECT Pincode FROM Address WHERE Address_ID = %s", (customer_address_id,))
+        customer_result = cursor.fetchone()
+        if not customer_result:  # Check if the address exists
+            return None
+        customer_pincode = customer_result['Pincode']
+    
+        # Fetch all distinct warehouse pin codes
+        cursor.execute("SELECT DISTINCT Pincode FROM Warehouse")
+        warehouses = cursor.fetchall()
+    
+        if not warehouses:  # Check if there are any warehouses
+            return None
+    
+        # Find the nearest warehouse based on pin code difference
+        try:
+            nearest_warehouse_pin = min(warehouses, key=lambda x: abs(int(x['Pincode']) - int(customer_pincode)))['Pincode']
+        except ValueError:  # Catch the ValueError if warehouses is empty
+            cursor.close()
+            conn.close()
+            return None
+    
+        cursor.close()
+        conn.close()
+    
+        # Return the pin code of the nearest warehouse
+        return nearest_warehouse_pin
+
+\end{verbatim}
+
+\section*{Triggers}
+
+\begin{verbatim}
+
+1.  DELIMITER $$
+    CREATE TRIGGER RestockProductsAfterSale
+    AFTER UPDATE ON Warehouse
+    FOR EACH ROW
+    BEGIN
+        IF OLD.Warehouse_Quantity > NEW.Warehouse_Quantity AND NEW.Warehouse_Quantity < 5 THEN
+            -- Assuming 5 as the minimum threshold for a specific warehouse
+            UPDATE Warehouse
+            SET Warehouse_Quantity = 20 -- Restocking to quantity of 20 in the specific warehouse
+            WHERE Product_ID = NEW.Product_ID AND Pincode = NEW.Pincode;
+        END IF;
+    END $$
+    DELIMITER ;
+
+2. DELIMITER $$
+    CREATE TRIGGER ClearCartAfterPayment
+    AFTER UPDATE ON Payment
+    FOR EACH ROW
+    BEGIN
+        IF NEW.Status = 'Completed' THEN
+            DELETE FROM Cart WHERE Cart_ID = NEW.Cart_ID;
+        END IF;
+    END$$
+    DELIMITER ;
+
+\end{verbatim}
+
+\section*{Web pages}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.2]{login.png}
+    \caption{Login Page}
+    \label{fig:login}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.2]{sign-up.png}
+    \caption{Sign-Up Page}
+    \label{fig:signup}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.2]{home.png}
+    \caption{Home Page}
+    \label{fig:home}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.2]{address.png}
+    \caption{Address Page}
+    \label{fig:address}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.2]{laptops.png}
+    \caption{Products Page}
+    \label{fig:laptops}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.2]{buy-laptop.png}
+    \caption{Buy Product Page}
+    \label{fig:buylaptop}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.2]{cart.png}
+    \caption{Cart Page}
+    \label{fig:cart}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.2]{checkout.png}
+    \caption{Checkout Page}
+    \label{fig:checkout}
+\end{figure}
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.2]{inventory.png}
+    \caption{Inventory Page}
+    \label{fig:inventory}
+\end{figure}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.2]{add-product.png}
+    \caption{Add Product Page}
+    \label{fig:addproduct}
+\end{figure}
+
+
+
+\section*{Contributions}
+All group members contributed equally to this submission.
+
+\end{document}
