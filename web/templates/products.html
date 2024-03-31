@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Products</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+        <script>
+            function addToCart(productId, quantity, customerId, price, offer) {
+                fetch('/add_to_cart', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        product_id: productId,
+                        quantity: quantity,
+                        customer_id: customerId,
+                        price: price,
+                        offer: offer
+                    }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+
+            function updateQuantity(productId, delta) {
+                var quantityInput = document.getElementById('quantity-' + productId);
+                var newQuantity = parseInt(quantityInput.value) + delta;
+                if (newQuantity < 1) newQuantity = 1;
+                quantityInput.value = newQuantity;
+            }
+        </script>
+    </head>
+
+    <body>
+        <div class="container">
+            <h1>Products</h1>
+            <div class="row">
+                {% for product in products %}
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.Name }}</h5>
+                            <p class="card-text">{{ product.Description }}</p>
+                            <p class="card-text">Price: {{ product.Price }}</p>
+                            <p class="card-text">Quantity:
+                                <button onclick="updateQuantity('{{ product.Id }}', -1)">-</button>
+                                <input type="number" id="quantity-{{ product.Id }}" value="1" min="1"
+                                    style="width: 50px;" readonly>
+                                <button onclick="updateQuantity('{{ product.Id }}', 1)">+</button>
+                            </p>
+                            <p class="card-text">Discount: {{ product.Discount }}</p>
+                            <button
+                                onclick="addToCart('{{ product.Id }}', document.getElementById('quantity-' + '{{ product.Id }}').value, '{{ customer.Id }}', '{{ product.Price }}', '{{ product.Discount }}')">Add
+                                to Cart</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </body>
+
+</html>

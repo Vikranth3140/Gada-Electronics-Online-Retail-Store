@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Checkout</h2>
+    <div class="order-summary">
+        <h3>Order Summary</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart_items %}
+                <tr>
+                    <td>{{ item.Name }}</td>
+                    <td>${{ item.Price }}</td>
+                    <td>{{ item.Quantity }}</td>
+                    <td>${{ item.Quantity * item.Price }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="total">
+            <h4>Total: ${{ total }}</h4>
+        </div>
+    </div>
+
+    <div class="payment-method">
+        <h3>Payment Method</h3>
+        <select class="form-control" id="payment-method" name="payment_method">
+            <option value="Card">Credit/Debit Card</option>
+            <option value="Net Banking">Net Banking</option>
+            <option value="UPI">UPI</option>
+        </select>
+    </div>
+
+    <form action="/checkout" method="post">
+
+        <button class="btn btn-primary" type="submit">Pay Now</button>
+    </form>
+</div>
+{% endblock %}

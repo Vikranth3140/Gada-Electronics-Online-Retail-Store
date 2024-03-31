@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Order History</h2>
+    {% for order in orders %}
+    <div>
+        <p>Order ID: {{ order.Order_ID }}</p>
+        <p>Status: {{ order.Status }}</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

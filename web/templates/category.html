@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ category_name.capitalize() }} Category{% endblock %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+
+        <h2>{{ category_name.capitalize() }} Category</h2>
+        <div class="col-md-4">
+            <form class="d-flex" method="GET" action="{{ url_for('category', category_name=category_name) }}">
+                <input class="form-control me-2" type="search" name="search" placeholder="Search" aria-label="Search"
+                    value="{{ request.args.get('search', '') }}">
+                <button class="btn btn-outline-success me-2" type="submit">Search</button>
+
+            </form>
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                <i class="bi bi-filter"></i> Filter
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('category', category_name=category_name, sort='price') }}"
+                    class="btn btn-outline-dark {% if request.args.get('sort') == 'price' %}active{% endif %}">Price</a>
+                <a href="{{ url_for('category', category_name=category_name, sort='delivery') }}"
+                    class="btn btn-outline-dark {% if request.args.get('sort') == 'delivery' %}active{% endif %}">Delivery
+                    Time</a>
+                <a href="{{ url_for('category', category_name=category_name, sort='bestselling') }}"
+                    class="btn btn-outline-dark {% if request.args.get('sort') == 'bestselling' %}active{% endif %}">Best
+                    Selling</a>
+                <a href="{{ url_for('category', category_name=category_name, sort='new') }}"
+                    class="btn btn-outline-dark {% if request.args.get('sort') == 'new' %}active{% endif %}">New
+                    Arrivals</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for product in products %}
+        <div class="col">
+            <div class="card h-100">
+                <img src="{{ product.ImgURL }}" class="card-img-top" alt="Product Image">
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.Name }}</h5>
+                    <p class="card-text">Price: ${{ product.Price }}</p>
+                    <p class="card-text">Available: {{ product.Adjusted_Quantity }} units</p>
+                    <a href="/products/{{ product.Product_ID }}" class="btn btn-primary">Buy Now</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

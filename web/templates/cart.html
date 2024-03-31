@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Cart | Gada Electronics{% endblock %}
+
+{% block content %}
+
+<main class="container my-5">
+    <section>
+        <h2>Your Cart</h2>
+        <div class="cart-container table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Item</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Subtotal</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cart_items %}
+                    <tr>
+                        <th scope="row">{{ loop.index }}</th>
+                        <td>{{ item.Name }}</td>
+                        <td>${{ '%.2f' | format(item.Price) }}</td>
+                        <td>{{ item.Quantity }}</td>
+                        <td>${{ '%.2f' | format(item.Price * item.Quantity) }}</td>
+                        <td>
+                            <form action="/cart/{{ session['cart_id'] }}" method="POST">
+                                <input type="hidden" name="product_id" value="{{ item.Product_ID }}">
+                                <input type="hidden" name="action" value="remove">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">Your cart is empty</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+        <div class="d-flex justify-content-end">
+            <h3>Total:</h3>
+            <span id="total-price" class="ms-2">$0.00</span>
+        </div>
+        <div class="d-flex justify-content-end mt-3">
+            <a href="/checkout" class="btn btn-primary">Checkout</a>
+        </div>
+    </section>
+</main>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var total = 0;
+    var prices = document.querySelectorAll('td:nth-child(5)');
+    prices.forEach(price => {
+        total += parseFloat(price.innerText.slice(1));
+    });
+    document.getElementById('total-price').innerText = '$' + total.toFixed(2);
+</script>
+{% endblock %}

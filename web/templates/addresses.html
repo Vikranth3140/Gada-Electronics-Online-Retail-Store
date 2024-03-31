@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Addresses{% endblock %}
+{% block content %}
+
+<div class="container">
+    <h1>Your Addresses</h1>
+    <form action="{{ url_for('select_address') }}" method="POST">
+        {% for address in addresses %}
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="selected_address" id="address{{ loop.index }}"
+                value="{{ address.Address_ID }}" required {% if address.Address_ID==session.selected_address_id
+                %}checked{% endif %}>
+            <label class="form-check-label" for="address{{ loop.index }}">
+                {{ address.Street }}, {{ address.City }}, {{ address.State }}, {{ address.Pincode }}
+            </label>
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">Update Address</button>
+    </form>
+
+    <h2>Add New Address</h2>
+    <form action="{{ url_for('addresses') }}" method="POST">
+        <input type="text" name="flat_no" placeholder="Flat No" required>
+        <input type="text" name="street_name" placeholder="Street Name" required>
+        <input type="text" name="city" placeholder="City" required>
+        <input type="text" name="state" placeholder="State" required>
+        <input type="text" name="pincode" placeholder="Pincode" required>
+        <button type="submit">Add Address</button>
+    </form>
+</div>
+
+{% endblock %}

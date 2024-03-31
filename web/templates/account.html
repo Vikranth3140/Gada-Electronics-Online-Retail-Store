@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Account</h2>
+    <ul>
+        <li><a href="{{ url_for('cart', cart_id=session['cart_id']) }}">View Cart</a></li>
+        <li><a href="{{ url_for('addresses') }}">Manage Addresses</a></li>
+        <li><a href="{{ url_for('order_history') }}">Order History</a></li>
+        <li><a href="{{ url_for('logout') }}">Logout</a></li>
+    </ul>
+</div>
+{% endblock %}

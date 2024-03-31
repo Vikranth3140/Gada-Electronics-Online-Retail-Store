@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Online Retail Store{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div class="container">
+        <h1 class="display-4">Welcome to Our Online Retail Store</h1>
+        <p class="lead">Discover the latest electronics and gadgets at unbeatable prices.</p>
+        <a href="#" class="btn btn-primary btn-lg">Shop Now</a>
+    </div>
+</div>
+
+<div class="container py-5">
+    <h2 class="text-center mb-4">Featured Categories</h2>
+    <div class="row">
+        {% for category in categories %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <a href="/category/{{ category.name | urlize }}">
+                    <img src="{{ category.url }}" class="card-img-top" alt="{{ category.name }}">
+                </a>
+                <div class="card-body">
+                    <h5 class="card-title">{{ category.name }}</h5>
+                    <p class="card-text">Explore our range of {{ category.name }}.</p>
+                    <a href="/category/{{ category.name | urlize }}" class="btn btn-primary">Shop Now</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

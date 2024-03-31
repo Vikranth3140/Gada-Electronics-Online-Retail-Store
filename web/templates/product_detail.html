@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ product['Name'] }} | Online Retail Store{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6">
+            <img src="{{ product['ImgURL'] }}" class="img-fluid product-image" alt="{{ product['Name'] }}">
+        </div>
+        <div class="col-md-6">
+            <h2>{{ product['Name'] }}</h2>
+            <p><strong>Manufacturer:</strong> {{ product['Manufacturer'] }}</p>
+            <h4>$ {{ product['Price'] }}</h4>
+            <p>{{ product['Description'] }}</p>
+            <div class="mb-3">
+                <label for="quantity" class="form-label"><strong>Quantity:</strong></label>
+                <div class="input-group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="changeQuantity(-1)" {% if
+                        max_addable_quantity==0 %}disabled{% endif %}>-</button>
+                    <input type="number" id="quantity" name="quantity" class="form-control text-center" value="1"
+                        min="1" max="{{ max_addable_quantity }}" step="1" style="max-width: fit-content;" readonly>
+                    <button type="button" class="btn btn-outline-secondary" onclick="changeQuantity(1)" {% if
+                        max_addable_quantity==0 %}disabled{% endif %}>+</button>
+                </div>
+            </div>
+            <div class="d-grid gap-2">
+                <form action="/cart/{{ session['cart_id'] }}" method="POST">
+                    <input type="hidden" name="product_id" value="{{ product['Product_ID'] }}">
+                    <input type="hidden" id="quantity_count" name="quantity" value="1">
+                    <input type="hidden" name="action" value="add">
+                    <!-- Dynamically set button text and disable it if max_addable_quantity equals 0 -->
+                    <button type="submit"
+                        class="btn btn-lg {% if max_addable_quantity == 0 %}btn-danger{% else %}btn-primary{% endif %}"
+                        {% if max_addable_quantity==0 %}disabled{% endif %}>
+                        {% if max_addable_quantity == 0 %}Product Not Available{% else %}Add to Cart{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+    function changeQuantity(change) {
+        var quantityInput = document.getElementById('quantity');
+        var currentValue = parseInt(quantityInput.value);
+        var newValue = currentValue + change;
+
+        // Ensure the quantity stays within bounds
+        if (newValue >= 1 && newValue <= parseInt(quantityInput.max)) {
+            quantityInput.value = newValue;
+        }
+
+        var quantityFormInput = document.getElementById('quantity_count');
+        quantityFormInput.value = quantityInput.value;
+    }
+</script>
+
+{% endblock %}
