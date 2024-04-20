@@ -5,9 +5,11 @@ import random
 import string
 import json
 import os
+from datetime import datetime
+from mysql.connector import Error as MySQLError 
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = 'hello'
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 config_path = os.path.join(basedir, 'config.json')
@@ -45,8 +47,11 @@ def generate_customer_id(length=6):
 def insert_new_cart_and_payment(cursor, cart_id, customer_id):
     """Inserts a new cart and pending payment into the database."""
     # cursor.execute("INSERT INTO Cart (Cart_ID, Customer_ID) VALUES (%s, %s)", (cart_id, customer_id))
+    payment_id = 'PAY' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     cursor.execute("INSERT INTO Payment (Payment_ID, Customer_ID, Cart_ID, Status) VALUES (%s, %s, %s, 'Pending')", 
-                   ('PAY' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)), customer_id, cart_id))
+                   (payment_id, customer_id, cart_id))
+    
+    return payment_id
 
 def find_nearest_warehouse(customer_address_id):
     conn = mysql_connection()
@@ -117,42 +122,51 @@ def register():
         password = encrypt_password(password).decode()
         Customer_ID = generate_customer_id()
 
-    try:
-        conn = mysql_connection()
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO Customer (Customer_ID, Name, Email, PhoneNo, Password) VALUES (%s, %s, %s, %s, %s)",
-                       (Customer_ID, name, email, phone, password))
-        
-        
-        new_cart_id = generate_cart_id()
-        # Insert new cart and pending payment entry
-        insert_new_cart_and_payment(cursor, new_cart_id, Customer_ID)
+        try:
+            
+            conn = mysql_connection()
+            cursor = conn.cursor()
+            
+            
+            conn.start_transaction()
+            cursor.execute("""
+                LOCK TABLES 
+                Customer WRITE;
+            """)
+            
+            
+            cursor.execute("INSERT INTO Customer (Customer_ID, Name, Email, PhoneNo, Password) VALUES (%s, %s, %s, %s, %s)",
+                        (Customer_ID, name, email, phone, password))
+            
+            
+            new_cart_id = generate_cart_id()
+            # Insert new cart and pending payment entry
+            new_payment_id = insert_new_cart_and_payment(cursor, new_cart_id, Customer_ID)
       
-        conn.commit()
-        cursor.close()
-        conn.close()
+            conn.commit()
+            session['customer_id'] = Customer_ID
+            session['payment_id'] = new_payment_id
+            
+            session['cart_id'] = new_cart_id
+            session['cart_count'] = 0
+            session['cart'] = {}
+            
+            return redirect(url_for('index'))
         
-        session['customer_id'] = Customer_ID
-        session['cart_id'] = new_cart_id
-        session['cart_count'] = 0
-        session['cart'] = {}
+        except MySQLError as e:
+            conn.rollback()
+            if e.errno == 1062:
+                error_message = "An account with this email or phone number already exists."
+            else:
+                error_message = "An unexpected error occurred. Please try again later."
+            return render_template('error.html', error_message=error_message, back_url=url_for('register'))
         
+        finally:
+            cursor.close()
+            conn.close()
 
-        flash('Registration successful!', 'success')
-        return redirect(url_for('index'))
-    
-    except MySQLError as e:
-        conn.rollback()
-        if e.errno == 1062:
-            error_message = "An account with this email or phone number already exists."
-        else:
-            error_message = "An unexpected error occurred. Please try again later."
-        return render_template('error.html', error_message=error_message, back_url=url_for('register'))
-    
-    finally:
-        cursor.close()
-        conn.close()
-
+        
+        
 # Login Route 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -166,67 +180,78 @@ def login():
         email = request.form['email']
         password = request.form['password']
 
-        conn = mysql_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM Customer WHERE Email = %s", (email,))
-        user = cursor.fetchone()
+        try:
+            conn = mysql_connection()
+            cursor = conn.cursor(dictionary=True)
+            conn.start_transaction()
+            cursor.execute("SELECT * FROM Customer WHERE Email = %s", (email,))
+            user = cursor.fetchone()
 
-        if user and bcrypt.checkpw(password.encode(), user['Password'].encode()):
-            session['customer_id'] = user['Customer_ID']
-            
-            if user['Current_Address_ID']:
-                session['selected_address_id'] = user['Current_Address_ID']
-                nearest_warehouse_id = find_nearest_warehouse(session['selected_address_id'])
-                session['nearest_warehouse_id'] = nearest_warehouse_id
+            if user and bcrypt.checkpw(password.encode(), user['Password'].encode()):
+                session['customer_id'] = user['Customer_ID']
                 
+                # Handle user address and warehouse ID setup
+                setup_user_session(user, cursor)
+
+                # Handle pending payments and cart setup
+                handle_pending_payments(user['Customer_ID'], cursor)
+
+                conn.commit()
+                return redirect(url_for('index'))
             else:
-                # Redirect to addresses page if no address is selected
-                return redirect(url_for('addresses'))
-            
-            
-            
-            # Check for pending payments
-            cursor.execute("SELECT Cart_ID FROM Payment WHERE Customer_ID = %s AND Status = 'Pending'", (user['Customer_ID'],))
-            payment = cursor.fetchone()
+                flash('Invalid email or password', 'error')
+                return redirect(url_for('login'))
 
-            if payment:
-                # Set session variables for existing pending cart
-                session['cart_id'] = payment['Cart_ID']
-                # Retrieve the user's cart items
-                cursor.execute("""
-                    SELECT Product_ID, SUM(Quantity) AS Quantity 
-                    FROM Cart 
-                    WHERE Customer_ID = %s 
-                    GROUP BY Product_ID
-                """, (user['Customer_ID'],))
-                cart_items = cursor.fetchall()
-
-                # If there are items in the cart, populate the session cart
-                if cart_items:
-                    session_cart = {item['Product_ID']: item['Quantity'] for item in cart_items}
-                    session['cart'] = session_cart
-                    session['cart_count'] = sum(item['Quantity'] for item in cart_items)
-                else:
-                    # If there are no items, ensure the session cart is empty
-                    session['cart'] = {}
-                    session['cart_count'] = 0
-            else:
-                # No pending payment, create a new cart
-                new_cart_id = generate_cart_id()
-                # Insert new cart and pending payment entry
-                insert_new_cart_and_payment(cursor, new_cart_id, user['Customer_ID'])
-                session['cart_id'] = new_cart_id
-                session['cart_count'] = 0
-
-            conn.commit()
+        except mysql.connector.Error as err:
+            # Handle specific MySQL error
+            print("MySQL Error: ", str(err))
+            return render_template('error.html', error_message="A database error occurred.", back_url=url_for('login'))
+        finally:
             cursor.close()
             conn.close()
-            return redirect(url_for('index'))
+
+def setup_user_session(user, cursor):
+    if user['Current_Address_ID']:
+        session['selected_address_id'] = user['Current_Address_ID']
+        nearest_warehouse_id = find_nearest_warehouse(session['selected_address_id'])
+        session['nearest_warehouse_id'] = nearest_warehouse_id
+    else:
+        # Redirect to addresses page if no address is selected
+        return redirect(url_for('addresses'))
+
+def handle_pending_payments(customer_id, cursor):
+    cursor.execute("SELECT Cart_ID FROM Payment WHERE Customer_ID = %s AND Status = 'Pending'", (customer_id,))
+    payment = cursor.fetchone()
+
+    if payment:
+        # Set session variables for existing pending cart
+        session['cart_id'] = payment['Cart_ID']
+        # Retrieve the user's cart items
+        cursor.execute("""
+            SELECT Product_ID, SUM(Quantity) AS Quantity 
+            FROM Cart 
+            WHERE Customer_ID = %s 
+            GROUP BY Product_ID
+        """, (customer_id,))
+        cart_items = cursor.fetchall()
+
+        # If there are items in the cart, populate the session cart
+        if cart_items:
+            session_cart = {item['Product_ID']: item['Quantity'] for item in cart_items}
+            session['cart'] = session_cart
+            session['cart_count'] = sum(item['Quantity'] for item in cart_items)
         else:
-            cursor.close()
-            conn.close()
-            flash('Invalid email or password', 'error')
-            return redirect(url_for('login'))
+            # If there are no items, ensure the session cart is empty
+            session['cart'] = {}
+            session['cart_count'] = 0
+    else:
+        # No pending payment, create a new cart
+        new_cart_id = generate_cart_id()
+        # Insert new cart and pending payment entry
+        insert_new_cart_and_payment(cursor, new_cart_id, customer_id)
+        session['cart_id'] = new_cart_id
+        session['cart_count'] = 0
+
 
 # Logout Route
 @app.route('/logout')
@@ -427,6 +452,8 @@ def cart(cart_id):
 
             conn = mysql_connection()
             cursor = conn.cursor(dictionary=True)
+            
+            conn.start_transaction()
 
             # Get the quantity of the product to be removed
             cursor.execute("""
@@ -438,6 +465,7 @@ def cart(cart_id):
             
             if product:
                 remove_quantity = int(product['Quantity'])
+                print("remove_quantity",remove_quantity)
 
                 # Delete the product from the Cart table
                 query = "DELETE FROM Cart WHERE Customer_ID = %s AND Product_ID = %s"
@@ -447,7 +475,7 @@ def cart(cart_id):
                 # Check if the product exists in the session cart and adjust quantity
                 if 'cart' in session and product_id in session['cart']:
                     # Decrease the quantity in session cart or remove if it becomes 0
-                    session['cart'][product_id] -= remove_quantity
+                    session['cart'][product_id] -= int(remove_quantity)
 
                     if session['cart'][product_id] <= 0:
                         del session['cart'][product_id]
@@ -455,7 +483,7 @@ def cart(cart_id):
                     # Adjust the total cart count in the session
                     print("session cart",session['cart'])
                     print("session cart 2",session['cart_count'])
-                    session['cart_count'] = sum(session['cart'].values())
+                    session['cart_count'] = int(sum(session['cart'].values()))
 
                     # Ensure the session modification is saved
                     session.modified = True
@@ -477,6 +505,7 @@ def cart(cart_id):
             conn = mysql_connection()
             cursor = conn.cursor(dictionary=True)
 
+            conn.start_transaction()
             # Check if the product already exists in the user's cart
             cursor.execute("""
                 SELECT Quantity FROM Cart 
@@ -504,6 +533,8 @@ def cart(cart_id):
                         UPDATE Cart SET Quantity = %s
                         WHERE Cart_ID = %s AND Customer_ID = %s AND Product_ID = %s
                     """, (new_quantity, cart_id, customer_id, product_id))
+                    
+                    
                 else:
                     # Product does not exist in cart, so insert as new entry
                     cursor.execute("""
@@ -516,11 +547,11 @@ def cart(cart_id):
                 conn.close()
 
                 # Update session cart count and cart structure
-                session['cart_count'] = session.get('cart_count', 0) + add_quantity
+                print(session)
+                session['cart_count'] = int(session.get('cart_count', 0)) + int(add_quantity)
                 session_cart = session.get('cart', {})
-                session_cart[product_id] = session_cart.get(product_id, 0) + add_quantity
+                session_cart[product_id] = int(session_cart.get(product_id, 0)) + int(add_quantity)
                 session['cart'] = session_cart
-                session.modified = True  # Ensure the session modification is saved
 
                 flash('Product added to cart successfully!', 'success')
             else:
@@ -590,7 +621,8 @@ def category(category_name):
     for product in products:
     
         session_reserved = session['cart'].get(product['Product_ID'], 0) if 'cart' in session else 0
-        product['Adjusted_Quantity'] = max(product['Warehouse_Quantity'] - session_reserved, 0)
+        print("session",session_reserved)
+        product['Adjusted_Quantity'] = max(int(product['Warehouse_Quantity']) - int(session_reserved), 0)
         
     return render_template('category.html', products=products, category_name=category_name)
 
@@ -631,6 +663,8 @@ def addresses():
         # Connect to the database and add the address
         conn = mysql_connection()
         cursor = conn.cursor()
+        
+        conn.start_transaction()
 
         cursor.execute("""
             INSERT INTO Address (Address_ID, Customer_ID, Street_Name, Flat_No, City, State, Pincode) 
@@ -690,7 +724,6 @@ def select_address():
 
 
 
-
 @app.route('/order_history')
 def order_history():
     if 'customer_id' not in session:
@@ -730,6 +763,8 @@ def order_history():
     return render_template('order_history.html', orders=orders)
 
 
+
+
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     if request.method == 'GET':
@@ -740,7 +775,7 @@ def checkout():
         conn = mysql_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
-            SELECT p.Name, c.Price, c.Quantity
+            SELECT p.Name, c.Price, c.Quantity, c.Product_ID
             FROM Cart c
             JOIN Product p ON c.Product_ID = p.Product_ID
             WHERE c.Customer_ID = %s
@@ -760,11 +795,12 @@ def checkout():
         customer_id = session['customer_id']
         cart_id = session['cart_id']
 
-        conn = mysql_connection()
-        cursor = conn.cursor(dictionary=True)
-
         try:
+            conn = mysql_connection()
+            cursor = conn.cursor(dictionary=True)
             conn.start_transaction()
+            
+            # Lock the relevant tables including aliases properly
             cursor.execute("""
                 LOCK TABLES 
                 Cart AS c WRITE, 
@@ -772,55 +808,55 @@ def checkout():
                 Warehouse AS w WRITE, 
                 Orders WRITE;
             """)
+            
 
-            # Fetch cart items to update warehouse quantities
+
+            # Fetch and attempt to update warehouse quantities
             cursor.execute("""
                 SELECT c.Product_ID, c.Quantity, p.Price, p.Name, w.Pincode AS Warehouse_ID
-                FROM Cart c
-                JOIN Product p ON c.Product_ID = p.Product_ID
-                JOIN Warehouse w ON p.Product_ID = w.Product_ID
+                FROM Cart AS c
+                JOIN Product AS p ON c.Product_ID = p.Product_ID
+                JOIN Warehouse AS w ON p.Product_ID = w.Product_ID
                 WHERE c.Cart_ID = %s AND c.Customer_ID = %s
             """, (cart_id, customer_id))
             cart_items = cursor.fetchall()
-            total = sum(item['Quantity'] * item['Price'] for item in cart_items)
+            
+              # Assuming Payment_ID is generated somewhere within your application
+            payment_id = session['payment_id']
+            order_id = "ORD" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
 
+            
+            
+            print(payment_id)
+            print(order_id)
+            print(cart_items)
+            
             for item in cart_items:
                 cursor.execute("""
-                    UPDATE Warehouse
-                    SET Warehouse_Quantity = Warehouse_Quantity - %s
-                    WHERE Product_ID = %s AND Pincode = %s
-                """, (item['Quantity'], item['Product_ID'], item['Warehouse_ID']))
-
-            # Update payment status
-            cursor.execute("UPDATE Payment SET Status = 'Completed' WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))
-            cursor.execute("SELECT Payment_ID FROM Payment WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))  # Simulate retrieval of last inserted Payment ID
-            payment_info = cursor.fetchone()
-
-            # Generate and log the order
-            # order_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            
-            order_id = f"ORD{payment_info['Last_ID']}"
-            for item in cart_items: 
+                    UPDATE Warehouse AS w
+                    SET w.Warehouse_Quantity = w.Warehouse_Quantity - %s
+                    WHERE w.Product_ID = %s AND w.Pincode = %s AND w.Warehouse_Quantity >= %s
+                """, (item['Quantity'], item['Product_ID'], item['Warehouse_ID'], item['Quantity']))
+                print(item['Quantity'])
+              
+                # Insert into Orders table
                 cursor.execute("""
-                    INSERT INTO Orders (Order_ID, Customer_ID, Payment_ID)
-                    VALUES (%s, %s, %s)
-                """, (order_id, customer_id, payment_info['Payment_ID']))
+                    INSERT INTO Orders (Order_ID, Customer_ID, Payment_ID, Product_ID, Quantity)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (order_id, customer_id, payment_id, item['Product_ID'], item['Quantity']))
+                print("done")
+                
+            # Update payment status
+            cursor.execute("UPDATE Payment SET Status = 'Completed' WHERE Payment_ID", (payment_id))
 
-            # Clear the cart
-            # cursor.execute("DELETE FROM Cart WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))
-
-            # Create a new cart
-            new_cart_id = generate_cart_id()
-            insert_new_cart_and_payment(cursor, new_cart_id, customer_id)
-
-            session['cart_id'] = new_cart_id
-            session['cart_count'] = 0
+            if any([cursor.rowcount == 0 for item in cart_items]):
+                raise ValueError("Unable to complete order due to insufficient stock for one or more items.")
 
             conn.commit()
-            flash('Order placed successfully!', 'success')
+            total = sum(item['Price'] * item['Quantity'] for item in cart_items)
 
-            print("session",session)
-            return render_template('receipt.html', order_id=order_id, order_date=order_date,
+            flash('Order placed successfully!', 'success')
+            return render_template('receipt.html', order_id='some_id', order_date='some_date',
                                    payment_method='Credit Card', total=total, cart_items=cart_items)
 
         except MySQLError as err:
@@ -832,12 +868,11 @@ def checkout():
             flash(str(ve), 'error')
             return redirect(url_for('checkout'))
         finally:
-            cursor.execute("UNLOCK TABLES;")
+            cursor.execute("UNLOCK TABLES;")  # Ensure tables are unlocked even if an error occurs
             cursor.close()
             conn.close()
 
         return redirect(url_for('checkout'))
-
 
 
 
