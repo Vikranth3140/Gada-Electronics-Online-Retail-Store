@@ -1,13 +1,37 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-4">
     <h2>Order History</h2>
-    {% for order in orders %}
-    <div>
-        <p>Order ID: {{ order.Order_ID }}</p>
-        <p>Status: {{ order.Status }}</p>
+    <div class="accordion" id="ordersAccordion">
+        {% for order in orders %}
+        <div class="card">
+            <div class="card-header" id="heading{{ loop.index }}">
+                <h2 class="mb-0">
+                    <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse"
+                        data-target="#collapse{{ loop.index }}" aria-expanded="true"
+                        aria-controls="collapse{{ loop.index }}">
+                        Order #{{ order.Order_ID }} - Click to view details
+                    </button>
+                </h2>
+            </div>
+            <div id="collapse{{ loop.index }}" class="collapse {% if loop.first %}show{% endif %}"
+                aria-labelledby="heading{{ loop.index }}" data-parent="#ordersAccordion">
+                <div class="card-body">
+                    <p><strong>Order Placed:</strong> {{ order.Order_Placed_At }}</p>
+                    <p><strong>Payment Status:</strong> {{ order.Status }}</p>
+                    <p><strong>Products:</strong></p>
+                    <ul>
+                        {% for product in order.products %}
+                        <li>{{ product.name }} - Quantity: {{ product.quantity }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p>No orders have been placed yet.</p>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
 {% endblock %}

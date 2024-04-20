@@ -5,6 +5,7 @@ import random
 import string
 import json
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -673,21 +674,47 @@ def select_address():
 def order_history():
     if 'customer_id' not in session:
         return redirect(url_for('login'))
-    
+
     customer_id = session['customer_id']
     conn = mysql_connection()
     cursor = conn.cursor(dictionary=True)
+
     cursor.execute("""
-        SELECT o.Order_ID, o.Payment_ID, p.Status, p.Cart_ID
+            SELECT 
+            o.Order_ID, 
+            o.Order_Placed_At,
+            p.Status,  
+            p.Cart_ID,
+            SUM(c.Quantity * c.Price) AS Total,
+            GROUP_CONCAT(prod.Name ORDER BY prod.Name SEPARATOR ',') AS Product_Names,
+            GROUP_CONCAT(c.Quantity ORDER BY prod.Name SEPARATOR ',') AS Product_Quantities
         FROM Orders o
         JOIN Payment p ON o.Payment_ID = p.Payment_ID
+        JOIN Cart c ON c.Cart_ID = p.Cart_ID
+        JOIN Product prod ON c.Product_ID = prod.Product_ID
         WHERE o.Customer_ID = %s
+        GROUP BY o.Order_ID, o.Order_Placed_At, p.Status, p.Cart_ID  -- including p.Status and p.Cart_ID
+        ORDER BY o.Order_Placed_At DESC
+
     """, (customer_id,))
     orders = cursor.fetchall()
+
+    # Process orders to include product details
+    for order in orders:
+        product_names = order['Product_Names'].split(',')
+        quantities = order['Product_Quantities'].split(',')
+        products = [{'name': name, 'quantity': quantity} for name, quantity in zip(product_names, quantities)]
+        order['products'] = products
+
     cursor.close()
     conn.close()
+    
+    print(orders)
 
     return render_template('order_history.html', orders=orders)
+
+
+
 
 
 @app.route('/checkout', methods=['GET', 'POST'])
@@ -746,19 +773,20 @@ def checkout():
 
             # Update payment status
             cursor.execute("UPDATE Payment SET Status = 'Completed' WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))
-            cursor.execute("SELECT LAST_INSERT_ID() AS Last_ID")  # Simulate retrieval of last inserted Payment ID
+            cursor.execute("SELECT Payment_ID From Payment WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))  # Simulate retrieval of last inserted Payment ID
             payment_info = cursor.fetchone()
+            print(payment_info)
 
             # Generate and log the order
             order_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            order_id = f"ORD{payment_info['Last_ID']}"
+            order_id = f"ORD{payment_info['Payment_ID']}"
             cursor.execute("""
                 INSERT INTO Orders (Order_ID, Customer_ID, Payment_ID)
                 VALUES (%s, %s, %s)
-            """, (order_id, customer_id, payment_info['Last_ID']))
+            """, (order_id, customer_id, payment_info['Payment_ID']))
 
             # Clear the cart
-            cursor.execute("DELETE FROM Cart WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))
+            # cursor.execute("DELETE FROM Cart WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))
 
             # Create a new cart
             new_cart_id = generate_cart_id()
