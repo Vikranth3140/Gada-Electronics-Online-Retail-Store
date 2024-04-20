@@ -690,9 +690,8 @@ def order_history():
     return render_template('order_history.html', orders=orders)
 
 
-@app.route('/checkout', methods=['GET','POST'])
+@app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
-    
     if request.method == 'GET':
         if 'customer_id' not in session:
             return redirect(url_for('login'))
@@ -713,7 +712,7 @@ def checkout():
 
         return render_template('checkout.html', cart_items=cart_items, total=total)
 
-    if request.method == 'POST':
+    elif request.method == 'POST':
         if 'customer_id' not in session or 'cart_id' not in session:
             flash('Session expired or invalid. Please login again.', 'error')
             return redirect(url_for('login'))
@@ -725,32 +724,44 @@ def checkout():
         cursor = conn.cursor(dictionary=True)
 
         try:
+            conn.start_transaction()
+
             # Fetch cart items to update warehouse quantities
             cursor.execute("""
-                SELECT c.Product_ID, c.Quantity, p.Warehouse_ID
+                SELECT c.Product_ID, c.Quantity, p.Price, p.Name, w.Pincode AS Warehouse_ID
                 FROM Cart c
                 JOIN Product p ON c.Product_ID = p.Product_ID
+                JOIN Warehouse w ON p.Product_ID = w.Product_ID
                 WHERE c.Cart_ID = %s AND c.Customer_ID = %s
             """, (cart_id, customer_id))
             cart_items = cursor.fetchall()
+            total = sum(item['Quantity'] * item['Price'] for item in cart_items)
 
-            # Deduct each cart item quantity from the corresponding warehouse stock
             for item in cart_items:
                 cursor.execute("""
                     UPDATE Warehouse
                     SET Warehouse_Quantity = Warehouse_Quantity - %s
-                    WHERE Product_ID = %s AND Warehouse_ID = %s
+                    WHERE Product_ID = %s AND Pincode = %s
                 """, (item['Quantity'], item['Product_ID'], item['Warehouse_ID']))
-            
-            # Update the status of the payment to 'Completed'
-            cursor.execute("UPDATE Payment SET Status = 'Completed' WHERE Customer_ID = %s AND Cart_ID = %s", (customer_id, cart_id))
 
-            # Clear the cart after successful payment and stock update
+            # Update payment status
+            cursor.execute("UPDATE Payment SET Status = 'Completed' WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))
+            cursor.execute("SELECT LAST_INSERT_ID() AS Last_ID")  # Simulate retrieval of last inserted Payment ID
+            payment_info = cursor.fetchone()
+
+            # Generate and log the order
+            order_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            order_id = f"ORD{payment_info['Last_ID']}"
+            cursor.execute("""
+                INSERT INTO Orders (Order_ID, Customer_ID, Payment_ID)
+                VALUES (%s, %s, %s)
+            """, (order_id, customer_id, payment_info['Last_ID']))
+
+            # Clear the cart
             cursor.execute("DELETE FROM Cart WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))
 
-            # Generate a new cart for future purchases
-            new_cart_id = generate_cart_id()  # Ensure this function returns a unique Cart_ID
-            # Optionally, insert a new cart and pending payment entry if your flow requires it
+            # Create a new cart
+            new_cart_id = generate_cart_id()
             insert_new_cart_and_payment(cursor, new_cart_id, customer_id)
 
             session['cart_id'] = new_cart_id
@@ -758,16 +769,20 @@ def checkout():
 
             conn.commit()
             flash('Order placed successfully!', 'success')
-            
+
+            return render_template('receipt.html', order_id=order_id, order_date=order_date,
+                                   payment_method='Credit Card', total=total, cart_items=cart_items)
+
         except Exception as e:
             conn.rollback()
             flash('An error occurred during checkout. Please try again.', 'error')
-            print(e)  # For debugging purposes, consider logging this error as well.
+            print(e)
         finally:
             cursor.close()
             conn.close()
 
-        return 'ra'
+        return redirect(url_for('checkout'))
+
 
 
 

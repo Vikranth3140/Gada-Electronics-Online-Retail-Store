@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-3">
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            Order Confirmation
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">Thank you for your purchase!</h5>
+            <p class="card-text">Your order has been placed successfully.</p>
+
+            <div class="order-details">
+                <h6>Order ID: {{ order_id }}</h6>
+                <h6>Order Date: {{ order_date }}</h6>
+                <h6>Payment Method: {{ payment_method }}</h6>
+                <h6>Total Paid: ${{ total }}</h6>
+            </div>
+
+            <div class="mt-4">
+                <h4>Items Purchased</h4>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Quantity</th>
+                            <th>Price per Item</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cart_items %}
+                        <tr>
+                            <td>{{ item.Name }}</td>
+                            <td>{{ item.Quantity }}</td>
+                            <td>${{ item.Price }}</td>
+                            <td>${{ item.Quantity * item.Price }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <a href="{{ url_for('index') }}" class="btn btn-primary mt-3">Return to Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
