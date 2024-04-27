@@ -1,0 +1,71 @@
+{% extends 'adminbase.html' %}
+{% block title %}Warehouse Analytics{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+    <h1 class="mb-4">Warehouse Analytics</h1>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Total Products</h5>
+                    <p class="card-text">{{ total_products }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Total Quantity</h5>
+                    <p class="card-text">{{ total_quantity }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Total Revenue</h5>
+                    <p class="card-text">{{ total_revenue }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Top 5 Products by Quantity</h4>
+            <ul class="list-group mb-4">
+                {% for product in top_products_quantity %}
+                <li class="list-group-item">{{ product.Name }} - {{ product.Warehouse_Quantity }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h4>Top 5 Best-Selling Products</h4>
+            <ul class="list-group mb-4">
+                {% for product in top_selling_products %}
+                <li class="list-group-item">{{ product.Name }} - {{ product.total_sold }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Low Stock Products (Quantity < 10)</h4>
+                    <ul class="list-group mb-4">
+                        {% for product in low_stock_products %}
+                        <li class="list-group-item">{{ product.Name }} - {{ product.Warehouse_Quantity }}</li>
+                        {% endfor %}
+                    </ul>
+        </div>
+        <div class="col-md-6">
+            <h4>Category-wise Product Counts</h4>
+            <ul class="list-group mb-4">
+                {% for category in category_product_counts %}
+                <li class="list-group-item">{{ category.Category }} - {{ category.product_count }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -122,6 +122,12 @@ def register():
     try:
         conn = mysql_connection()
         cursor = conn.cursor()
+        conn.start_transaction()
+        cursor.execute("""
+            LOCK TABLES 
+            Customer WRITE;
+        """)
+        
         cursor.execute("INSERT INTO Customer (Customer_ID, Name, Email, PhoneNo, Password) VALUES (%s, %s, %s, %s, %s)",
                        (Customer_ID, name, email, phone, password))
         
@@ -170,6 +176,8 @@ def login():
 
         conn = mysql_connection()
         cursor = conn.cursor(dictionary=True)
+        
+        conn.start_transaction()
         
         try:
             cursor.execute("SELECT * FROM Customer WHERE Email = %s", (email,))
@@ -440,6 +448,8 @@ def cart(cart_id):
 
             conn = mysql_connection()
             cursor = conn.cursor(dictionary=True)
+            
+            conn.start_transaction()
 
             # Get the quantity of the product to be removed
             cursor.execute("""
@@ -492,7 +502,7 @@ def cart(cart_id):
 
             conn = mysql_connection()
             cursor = conn.cursor(dictionary=True)
-
+            conn.start_transaction()
             # Check if the product already exists in the user's cart
             cursor.execute("""
                 SELECT Quantity FROM Cart 
@@ -782,17 +792,15 @@ def checkout():
 
         conn = mysql_connection()
         cursor = conn.cursor(dictionary=True)
+        conn.start_transaction()
 
         try:
-            conn.start_transaction()
             cursor.execute("""
                 LOCK TABLES 
                 Cart AS c WRITE, 
                 Product AS p WRITE, 
                 Warehouse AS w WRITE, 
-
                 Payment WRITE,
-
                 Orders WRITE;
             """)
 
@@ -816,9 +824,11 @@ def checkout():
             
             
             order_id = f"ORD{payment_id}"
-            
+            print(cart_items)
+            print(session)
             for item in cart_items:
                 print("hi im there")
+                print("item", item)
                 cursor.execute("""
                     UPDATE Warehouse AS w
                     SET w.Warehouse_Quantity = w.Warehouse_Quantity - %s
@@ -835,7 +845,7 @@ def checkout():
                 
             cursor.execute("UPDATE Payment SET Status = 'Completed' WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))
 
-
+        
             # Create a new cart
             new_cart_id = generate_cart_id()
             insert_new_cart_and_payment(cursor, new_cart_id, customer_id)
@@ -847,28 +857,24 @@ def checkout():
             flash('Order placed successfully!', 'success')
 
             print("session",session)
-
             payment_method = request.form['payment_method']
             order_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
             return render_template('receipt.html', order_id=order_id, order_date=order_date,
                                    payment_method=payment_method, total=total, cart_items=cart_items)
 
         except MySQLError as err:
             conn.rollback()
             flash('A database error occurred. Please try again.', 'error')
-
             
             cursor.execute("UPDATE Payment SET Status = 'Failed' WHERE Cart_ID = %s AND Customer_ID = %s",
                            (cart_id, customer_id))
             conn.commit()
             
-
             return redirect(url_for('checkout'))
         except ValueError as ve:
+            print(ve)
             conn.rollback()
             flash(str(ve), 'error')
-
             
             cursor.execute("UPDATE Payment SET Status = 'Failed' WHERE Cart_ID = %s AND Customer_ID = %s",
                            (cart_id, customer_id))
@@ -904,61 +910,228 @@ def index():
     categories_dict = [{'name': category[0], 'url': category[1]} for category in categories]
     return render_template('home.html', categories=categories_dict)
 
-
-
-@app.route('/warehouse/inventory', methods=['GET', 'POST'])
-def warehouse_inventory():
-    conn = mysql_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT DISTINCT Pincode FROM Warehouse")
-    warehouses = cursor.fetchall()
-    selected_warehouse = request.form.get('warehouse_pincode')
-    products = []
-    if selected_warehouse:
-        cursor.execute("SELECT * FROM Product JOIN Warehouse ON Product.Product_ID = Warehouse.Product_ID WHERE Warehouse.Pincode = %s", (selected_warehouse,))
-        products = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return render_template('warehouse_inventory.html', warehouses=warehouses, products=products, selected_warehouse=selected_warehouse)
-
-@app.route('/warehouse/add_product', methods=['GET', 'POST'])
-def add_product_to_warehouse():
+@app.route('/warehouse/login', methods=['GET', 'POST'])
+def warehouse_login():
     if request.method == 'POST':
-        # Extract form data
-        product_details = {
-            'Product_ID': request.form['product_id'],
-            'Manufacturer': request.form['manufacturer'],
-            'Name': request.form['name'],
-            'Price': request.form['price'],
-            'Category': request.form['category'],
-            'ImgURL': request.form['imgurl'],
-            'Description': request.form['description'],
-            'Discount': request.form['discount'],
-            'Pincode': request.form['pincode'],
-            'Warehouse_Quantity': request.form['warehouse_quantity']
-        }
-        # Insert the new product into the Product table and Warehouse table
+        username = request.form['username']
+        password = request.form['password']
+        
+        print('hi')
+
         conn = mysql_connection()
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO Product (Product_ID, Manufacturer, Name, Price, Category, ImgURL, Description, Discount) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-                       (product_details['Product_ID'], product_details['Manufacturer'], product_details['Name'], product_details['Price'], product_details['Category'], product_details['ImgURL'], product_details['Description'], product_details['Discount']))
-        cursor.execute("INSERT INTO Warehouse (Pincode, Product_ID, Warehouse_Quantity) VALUES (%s, %s, %s)",
-                       (product_details['Pincode'], product_details['Product_ID'], product_details['Warehouse_Quantity']))
-        conn.commit()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM Warehouse_Manager WHERE Username = %s AND Password = %s", (username, password))
+        manager = cursor.fetchone()
         cursor.close()
         conn.close()
-        flash('Product added successfully!')
-        return redirect(url_for('add_product_to_warehouse'))
-    
-    # Get all pincodes for the form
+        print(manager)
+
+        if manager:
+            session['manager_id'] = manager['Manager_ID']
+            session['manager_pincode'] = manager['Pincode']
+            print(session)
+            return redirect(url_for('view_inventory'))
+        else:
+            print("Invalid username or password")
+            flash('Invalid username or password', 'error')
+            return redirect(url_for('warehouse_login'))
+    else:
+        return render_template('warehouse_login.html')
+
+@app.route('/warehouse/inventory', methods=['GET', 'POST'])
+def view_inventory():
+    if 'manager_id' not in session:
+        return redirect(url_for('warehouse_login'))
+
+    manager_pincode = session['manager_pincode']
+
     conn = mysql_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT DISTINCT Pincode FROM Warehouse")
-    pincodes = cursor.fetchall()
+
+    if request.method == 'POST':
+        search_query = request.form.get('search_query')
+        if search_query:
+            cursor.execute("""
+                SELECT *
+                FROM Product p
+                JOIN Warehouse w ON p.Product_ID = w.Product_ID
+                WHERE w.Pincode = %s AND (p.Name LIKE %s OR p.Product_ID LIKE %s)
+            """, (manager_pincode, f'%{search_query}%', f'%{search_query}%'))
+        else:
+            cursor.execute("""
+                SELECT *
+                FROM Product p
+                JOIN Warehouse w ON p.Product_ID = w.Product_ID
+                WHERE w.Pincode = %s
+            """, (manager_pincode,))
+    else:
+        cursor.execute("""
+            SELECT *
+            FROM Product p
+            JOIN Warehouse w ON p.Product_ID = w.Product_ID
+            WHERE w.Pincode = %s
+        """, (manager_pincode,))
+
+    products = cursor.fetchall()
+
     cursor.close()
     conn.close()
-    return render_template('add_product.html', pincodes=pincodes)
 
+    return render_template('warehouse_inventory.html', products=products)
+
+@app.route('/warehouse/add_product', methods=['POST'])
+def add_product_to_warehouse():
+    if 'manager_id' not in session:
+        return redirect(url_for('warehouse_login'))
+
+    manager_pincode = session['manager_pincode']
+
+    product_id = request.form['product_id']
+    name = request.form['name']
+    quantity = int(request.form['quantity'])
+
+    conn = mysql_connection()
+    cursor = conn.cursor()
+    
+    print()
+
+    try:
+        # Insert the product into the Product table if it doesn't exist
+        cursor.execute("INSERT IGNORE INTO Product (Product_ID, Name) VALUES (%s, %s)", (product_id, name))
+
+        # Insert or update the product quantity in the Warehouse table
+        cursor.execute("""
+            INSERT INTO Warehouse (Pincode, Product_ID, Warehouse_Quantity)
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE Warehouse_Quantity = Warehouse_Quantity + VALUES(Warehouse_Quantity)
+        """, (manager_pincode, product_id, quantity))
+
+        conn.commit()
+        flash('Product added successfully!', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error adding product: {str(e)}', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('view_inventory'))
+
+@app.route('/warehouse/edit_product/<product_id>', methods=['POST'])
+def edit_product(product_id):
+    if 'manager_id' not in session:
+        return redirect(url_for('warehouse_login'))
+
+    manager_pincode = session['manager_pincode']
+
+    name = request.form['edit_name']
+    quantity = int(request.form['edit_quantity'])
+
+    conn = mysql_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Update the product name in the Product table
+        cursor.execute("UPDATE Product SET Name = %s WHERE Product_ID = %s", (name, product_id))
+
+        # Update the product quantity in the Warehouse table
+        cursor.execute("""
+            UPDATE Warehouse
+            SET Warehouse_Quantity = %s
+            WHERE Pincode = %s AND Product_ID = %s
+        """, (quantity, manager_pincode, product_id))
+
+        conn.commit()
+        flash('Product updated successfully!', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error updating product: {str(e)}', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('view_inventory'))
+
+
+@app.route('/warehouse/analytics')
+def warehouse_analytics():
+    if 'manager_id' not in session:
+        return redirect(url_for('warehouse_manager_login'))
+
+    manager_pincode = session['manager_pincode']
+
+    conn = mysql_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Fetch total number of products
+    cursor.execute("SELECT COUNT(*) AS total_products FROM Warehouse WHERE Pincode = %s", (manager_pincode,))
+    total_products = cursor.fetchone()['total_products']
+
+    # Fetch total quantity of products
+    cursor.execute("SELECT SUM(Warehouse_Quantity) AS total_quantity FROM Warehouse WHERE Pincode = %s", (manager_pincode,))
+    total_quantity = cursor.fetchone()['total_quantity']
+
+    # Fetch top 5 products by quantity
+    cursor.execute("""
+        SELECT p.Name, w.Warehouse_Quantity
+        FROM Warehouse w
+        JOIN Product p ON w.Product_ID = p.Product_ID
+        WHERE w.Pincode = %s
+        ORDER BY w.Warehouse_Quantity DESC
+        LIMIT 5
+    """, (manager_pincode,))
+    top_products_quantity = cursor.fetchall()
+
+    # Fetch top 5 best-selling products
+    cursor.execute("""
+        SELECT p.Name, SUM(o.Quantity) AS total_sold
+        FROM Orders o
+        JOIN Product p ON o.Product_ID = p.Product_ID
+        JOIN Warehouse w ON p.Product_ID = w.Product_ID
+        WHERE w.Pincode = %s
+        GROUP BY p.Name
+        ORDER BY total_sold DESC
+        LIMIT 5
+    """, (manager_pincode,))
+    top_selling_products = cursor.fetchall()
+
+    # Fetch products with low stock (quantity less than 10)
+    cursor.execute("""
+        SELECT p.Name, w.Warehouse_Quantity
+        FROM Warehouse w
+        JOIN Product p ON w.Product_ID = p.Product_ID
+        WHERE w.Pincode = %s AND w.Warehouse_Quantity < 10
+    """, (manager_pincode,))
+    low_stock_products = cursor.fetchall()
+
+    # Fetch total sales revenue
+    cursor.execute("""
+        SELECT SUM(o.Quantity * p.Price) AS total_revenue
+        FROM Orders o
+        JOIN Product p ON o.Product_ID = p.Product_ID
+        JOIN Warehouse w ON p.Product_ID = w.Product_ID
+        WHERE w.Pincode = %s
+    """, (manager_pincode,))
+    total_revenue = cursor.fetchone()['total_revenue']
+
+    # Fetch category-wise product counts
+    cursor.execute("""
+        SELECT c.Category, COUNT(*) AS product_count
+        FROM Product p
+        JOIN Categories c ON p.Category = c.Category
+        JOIN Warehouse w ON p.Product_ID = w.Product_ID
+        WHERE w.Pincode = %s
+        GROUP BY c.Category
+    """, (manager_pincode,))
+    category_product_counts = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template('warehouse_analytics.html', total_products=total_products, total_quantity=total_quantity,
+                           top_products_quantity=top_products_quantity, top_selling_products=top_selling_products,
+                           low_stock_products=low_stock_products, total_revenue=total_revenue,
+                           category_product_counts=category_product_counts)
 
 if __name__ == '__main__':
     app.run(debug=True)
