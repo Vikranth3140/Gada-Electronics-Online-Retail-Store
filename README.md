@@ -68,7 +68,7 @@ web/
 
 ## Contributors
 
-- Vikranth Udandarao
-- Tharun Harish
-- Hemanth Dindigallu
-- Aditya Prasad
+- [Vikranth Udandarao](https://github.com/Vikranth3140)
+- [Tharun Harish](https://github.com/Tharun-Ninja)
+- [Hemanth Dindigallu](https://github.com/hemanthdindigallu)
+- [Aditya Prasad](https://github.com/adi1705tuktuk)
