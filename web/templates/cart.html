@@ -49,7 +49,8 @@
             <span id="total-price" class="ms-2">$0.00</span>
         </div>
         <div class="d-flex justify-content-end mt-3">
-            <a href="/checkout" class="btn btn-primary">Checkout</a>
+            <a href="/checkout"
+                class="btn btn-primary {% if not cart_items %}disabled btn-danger{% endif %}">Checkout</a>
         </div>
     </section>
 </main>

@@ -98,7 +98,6 @@ def find_nearest_warehouse(customer_address_id):
 # Signup Route
 @app.route('/signup', methods=['GET', 'POST'])
 def register():
-    
     if 'customer_id' in session:
         return redirect(url_for('index'))
     
@@ -119,47 +118,42 @@ def register():
         password = encrypt_password(password).decode()
         Customer_ID = generate_customer_id()
 
-    try:
-        conn = mysql_connection()
-        cursor = conn.cursor()
-        conn.start_transaction()
-        cursor.execute("""
-            LOCK TABLES 
-            Customer WRITE;
-        """)
+        try:
+            conn = mysql_connection()
+            cursor = conn.cursor()
+            conn.start_transaction()
+            
+            cursor.execute("LOCK TABLES Customer WRITE, Payment WRITE")
+            
+            cursor.execute("INSERT INTO Customer (Customer_ID, Name, Email, PhoneNo, Password) VALUES (%s, %s, %s, %s, %s)",
+                           (Customer_ID, name, email, phone, password))
+            
+            new_cart_id = generate_cart_id()
+            insert_new_cart_and_payment(cursor, new_cart_id, Customer_ID)
+            
+            conn.commit()
+            
+            session['customer_id'] = Customer_ID
+            session['cart_id'] = new_cart_id
+            session['cart_count'] = 0
+            session['cart'] = {}
+            
+            flash('Registration successful!', 'success')
+            return redirect(url_for('index'))
         
-        cursor.execute("INSERT INTO Customer (Customer_ID, Name, Email, PhoneNo, Password) VALUES (%s, %s, %s, %s, %s)",
-                       (Customer_ID, name, email, phone, password))
+        except MySQLError as e:
+            conn.rollback()
+            if e.errno == 1062:
+                error_message = "An account with this email or phone number already exists."
+            else:
+                print(e)
+                error_message = "An unexpected error occurred. Please try again later."
+            return render_template('error.html', error_message=error_message, back_url=url_for('register'))
         
-        
-        new_cart_id = generate_cart_id()
-        # Insert new cart and pending payment entry
-        insert_new_cart_and_payment(cursor, new_cart_id, Customer_ID)
-      
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        session['customer_id'] = Customer_ID
-        session['cart_id'] = new_cart_id
-        session['cart_count'] = 0
-        session['cart'] = {}
-        
-
-        flash('Registration successful!', 'success')
-        return redirect(url_for('index'))
-    
-    except MySQLError as e:
-        conn.rollback()
-        if e.errno == 1062:
-            error_message = "An account with this email or phone number already exists."
-        else:
-            error_message = "An unexpected error occurred. Please try again later."
-        return render_template('error.html', error_message=error_message, back_url=url_for('register'))
-    
-    finally:
-        cursor.close()
-        conn.close()
+        finally:
+            cursor.execute("UNLOCK TABLES")
+            cursor.close()
+            conn.close()
 
 # Login Route 
 @app.route('/login', methods=['GET', 'POST'])
@@ -483,7 +477,7 @@ def cart(cart_id):
                     session['cart_count'] = sum(session['cart'].values())
 
                     # Ensure the session modification is saved
-                    # session.modified = True
+                    session.modified = True
                     
 
                 cursor.close()
@@ -503,9 +497,10 @@ def cart(cart_id):
             conn = mysql_connection()
             cursor = conn.cursor(dictionary=True)
             conn.start_transaction()
+
             # Check if the product already exists in the user's cart
             cursor.execute("""
-                SELECT Quantity FROM Cart 
+                SELECT Quantity FROM Cart
                 WHERE Cart_ID = %s AND Customer_ID = %s AND Product_ID = %s
             """, (cart_id, customer_id, product_id))
             existing_product = cursor.fetchone()
@@ -513,8 +508,6 @@ def cart(cart_id):
             # Fetch the product details for price and discount
             cursor.execute("SELECT Price, Discount FROM Product WHERE Product_ID = %s", (product_id,))
             product_data = cursor.fetchone()
-            
-            print(product_data)
 
             if product_data:
                 price = product_data['Price']
@@ -524,7 +517,6 @@ def cart(cart_id):
 
                 if existing_product:
                     # Product exists in cart, so update the quantity
-                    print("testtingngg",existing_product)
                     new_quantity = int(existing_product['Quantity']) + add_quantity
                     cursor.execute("""
                         UPDATE Cart SET Quantity = %s
@@ -533,7 +525,7 @@ def cart(cart_id):
                 else:
                     # Product does not exist in cart, so insert as new entry
                     cursor.execute("""
-                        INSERT INTO Cart (Cart_ID, Customer_ID, Product_ID, Price, Offer, Quantity) 
+                        INSERT INTO Cart (Cart_ID, Customer_ID, Product_ID, Price, Offer, Quantity)
                         VALUES (%s, %s, %s, %s, %s, %s)
                     """, (cart_id, customer_id, product_id, price, offer, add_quantity))
 
@@ -795,6 +787,7 @@ def checkout():
         conn.start_transaction()
 
         try:
+            print(session.get('cart'))
             cursor.execute("""
                 LOCK TABLES 
                 Cart AS c WRITE, 
@@ -829,19 +822,23 @@ def checkout():
             for item in cart_items:
                 print("hi im there")
                 print("item", item)
-                cursor.execute("""
-                    UPDATE Warehouse AS w
-                    SET w.Warehouse_Quantity = w.Warehouse_Quantity - %s
-                    WHERE w.Product_ID = %s AND w.Pincode = %s AND w.Warehouse_Quantity >= %s
-                """, (item['Quantity'], item['Product_ID'], item['Warehouse_ID'], item['Quantity']))
-                print(f"eachitem: {item}")
-                
-                # Insert into Orders table
-                cursor.execute("""
-                    INSERT INTO Orders (Order_ID, Customer_ID, Payment_ID, Product_ID, Quantity)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (order_id, customer_id, payment_id, item['Product_ID'], item['Quantity']))
-                print("done")
+                try:
+                    cursor.execute("""
+                        UPDATE Warehouse AS w
+                        SET w.Warehouse_Quantity = w.Warehouse_Quantity - %s
+                        WHERE w.Product_ID = %s AND w.Pincode = %s AND w.Warehouse_Quantity >= %s
+                    """, (item['Quantity'], item['Product_ID'], item['Warehouse_ID'], item['Quantity']))
+                    print(f"eachitem: {item}")
+                    
+                    # Insert into Orders table
+                    cursor.execute("""
+                        INSERT INTO Orders (Order_ID, Customer_ID, Payment_ID, Product_ID, Quantity)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (order_id, customer_id, payment_id, item['Product_ID'], item['Quantity']))
+                    print("done")
+                except:
+                    
+                    pass
                 
             cursor.execute("UPDATE Payment SET Status = 'Completed' WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))
 
@@ -864,6 +861,7 @@ def checkout():
 
         except MySQLError as err:
             conn.rollback()
+            print(err)
             flash('A database error occurred. Please try again.', 'error')
             
             cursor.execute("UPDATE Payment SET Status = 'Failed' WHERE Cart_ID = %s AND Customer_ID = %s",

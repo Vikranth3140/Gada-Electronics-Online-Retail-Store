@@ -30,17 +30,25 @@
         </div>
     </div>
 
-    <div class="payment-method">
+    <!-- <div class="payment-method">
         <h3>Payment Method</h3>
         <select class="form-control" id="payment-method" name="payment_method">
             <option value="Card">Credit/Debit Card</option>
             <option value="Net Banking">Net Banking</option>
             <option value="UPI">UPI</option>
         </select>
-    </div>
+    </div> -->
 
     <form action="/checkout" method="post">
 
+        <div class="payment-method mb-3">
+            <h3>Payment Method</h3>
+            <select class="form-control" id="payment-method" name="payment_method">
+                <option value="Card">Credit/Debit Card</option>
+                <option value="Net Banking">Net Banking</option>
+                <option value="UPI">UPI</option>
+            </select>
+        </div>
         <button class="btn btn-primary" type="submit">Pay Now</button>
     </form>
 </div>
