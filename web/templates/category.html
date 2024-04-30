@@ -46,7 +46,8 @@
         {% for product in products %}
         <div class="col">
             <div class="card h-100">
-                <img src="{{ product.ImgURL }}" class="card-img-top" alt="Product Image">
+                <img src="https://source.unsplash.com/featured/?{{ category_name }}" class="card-img-top"
+                    alt="Product Image">
                 <div class="card-body">
                     <h5 class="card-title">{{ product.Name }}</h5>
                     <p class="card-text">Price: ${{ product.Price }}</p>
