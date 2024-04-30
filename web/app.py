@@ -927,6 +927,13 @@ def checkout():
             
             cursor.execute("UPDATE Payment SET Status = 'Failed' WHERE Cart_ID = %s AND Customer_ID = %s",
                            (cart_id, customer_id))
+            
+            new_cart_id = generate_cart_id()
+            insert_new_cart_and_payment(cursor, new_cart_id, customer_id)
+
+            session['cart_id'] = new_cart_id
+            session['cart_count'] = 0
+
             conn.commit()
             
             return render_template('receipt_failed.html', error_message=str(ve))
