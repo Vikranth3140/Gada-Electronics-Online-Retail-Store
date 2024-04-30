@@ -17,7 +17,7 @@
         <div class="col-md-4 mb-4">
             <div class="card">
                 <a href="/category/{{ category.name | urlize }}">
-                    <img src="{{ category.url }}" class="card-img-top" alt="{{ category.name }}">
+                    <img src="{{ category.url }}" class="card-img-top img-fluid" alt="{{ category.name }}">
                 </a>
                 <div class="card-body">
                     <h5 class="card-title">{{ category.name }}</h5>
@@ -29,4 +29,16 @@
         {% endfor %}
     </div>
 </div>
+
+<style>
+    .card-img-top {
+        width: 100%;
+        /* Set the width */
+        height: 300px;
+        /* Set the height */
+        object-fit: cover;
+        /* Maintain aspect ratio */
+    }
+</style>
+
 {% endblock %}
