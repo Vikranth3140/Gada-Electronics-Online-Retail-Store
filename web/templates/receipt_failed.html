@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-3">
+    <div class="card">
+        <div class="card-header bg-danger text-white">
+            Order Failed
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">We're sorry, but your order could not be processed.</h5>
+            <p class="card-text">{{ error_message }}</p>
+
+            <a href="{{ url_for('index') }}" class="btn btn-primary mt-3">Return to Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
