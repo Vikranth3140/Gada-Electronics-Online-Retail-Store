@@ -27,19 +27,25 @@ web/
 |   ├── order_history.html
 |   ├── product_detail.html
 |   ├── products.html
+|   ├── receipt_failed.html
 |   ├── receipt.html
 |   ├── register.html
 |   ├── signup.html
-│   ├── update_inventory.html
-|   └── warehouse_inventory.html
+|   ├── warehouse_analytics.html
+|   ├── warehouse_inventory.html
+|   ├── warehouse_login.html
 │
 ├── app.py
 |
 ├── config.json
+|
+├── requirements.txt
 ```
 
 - **templates/**: Contains all the HTML files for the user interface.
-- **app.py**: The entire backend code for the project.
+- **app.py**: Contains the entire backend code for the project.
+- **config.json**: Contains the database connection details.
+- **requirements.txt**: Contains all the dependencies for the project.
 
 ## How to Run
 
