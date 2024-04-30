@@ -425,10 +425,9 @@ def generate_cart_id(length=10):
     return cart_id
 
 
-# Cart Route
 @app.route('/cart/<cart_id>', methods=['GET', 'POST'])
 def cart(cart_id):
-    if('customer_id' not in session):
+    if 'customer_id' not in session:
         return redirect(url_for('login'))
     
     if request.method == 'POST':
@@ -448,10 +447,13 @@ def cart(cart_id):
             # Get the quantity of the product to be removed
             cursor.execute("""
                 SELECT Quantity FROM Cart 
-                WHERE Cart_ID = %s AND Product_ID = %s
-            """, (cart_id, product_id))
+                WHERE Cart_ID = %s AND Product_ID = %s AND Customer_ID = %s
+            """, (cart_id, product_id, customer_id))
             
             product = cursor.fetchone()
+            
+            print(product)
+            print(session['cart'])
             
             if product:
                 remove_quantity = int(product['Quantity'])
@@ -459,22 +461,19 @@ def cart(cart_id):
                 
 
                 # Delete the product from the Cart table
-                query = "DELETE FROM Cart WHERE Customer_ID = %s AND Product_ID = %s"
-                cursor.execute(query, (customer_id, product_id))
+                query = "DELETE FROM Cart WHERE Cart_ID = %s AND Customer_ID = %s AND Product_ID = %s"
+                cursor.execute(query, (cart_id, customer_id, product_id))
                 conn.commit()
 
                 # Check if the product exists in the session cart and adjust quantity
                 if 'cart' in session and product_id in session['cart']:
-                    # Decrease the quantity in session cart or remove if it becomes 0
-                    session['cart'][product_id] -= remove_quantity
-
-                    if session['cart'][product_id] <= 0:
-                        del session['cart'][product_id]
+                    # Remove the product from the session cart
+                    del session['cart'][product_id]
 
                     # Adjust the total cart count in the session
-                    print("session cart",session['cart'])
-                    print("session cart 2",session['cart_count'])
-                    session['cart_count'] = sum(session['cart'].values())
+                    print("session cart", session['cart'])
+                    print("session cart 2", session['cart_count'])
+                    session['cart_count'] -= remove_quantity
 
                     # Ensure the session modification is saved
                     session.modified = True
@@ -488,7 +487,8 @@ def cart(cart_id):
                 flash('Product not found in cart.', 'error')
 
             return redirect(url_for('cart', cart_id=cart_id))
-
+        
+        
         elif action == 'add':
             product_id = request.form['product_id']
             add_quantity = int(request.form['quantity'])
@@ -743,12 +743,36 @@ def order_history():
         """, (customer_id,))
         orders = cursor.fetchall()
         print(orders)
+        
+         # Group orders by Order_ID
+        grouped_orders = {}
+        for order in orders:
+            order_id = order['Order_ID']
+            if order_id not in grouped_orders:
+                grouped_orders[order_id] = {
+                    'Order_ID': order_id,
+                    'Customer_ID': order['Customer_ID'],
+                    'Payment_ID': order['Payment_ID'],
+                    'Payment_Status': order['Payment_Status'],
+                    'Order_Placed_At': order['Order_Placed_At'],
+                    'Products': [],
+                    'Total_Price': 0
+                }
+            grouped_orders[order_id]['Products'].append({
+                'Product_ID': order['Product_ID'],
+                'Product_Name': order['Product_Name'],
+                'Quantity': order['Quantity'],
+                'Price': order['Price'],
+                'Total_Price': order['Total_Price']
+            })
+            grouped_orders[order_id]['Total_Price'] += order['Total_Price']
 
     finally:
         cursor.close()
         conn.close()
 
-    return render_template('order_history.html', orders=orders)
+    return render_template('order_history.html', orders=list(grouped_orders.values()))
+
 
 
 @app.route('/checkout', methods=['GET', 'POST'])
@@ -798,17 +822,30 @@ def checkout():
             """)
 
             # Fetch cart items to update warehouse quantities
+            # cursor.execute("""
+            #     SELECT c.Product_ID, c.Quantity, p.Price, p.Name, w.Pincode AS Warehouse_ID
+            #     FROM Cart c
+            #     JOIN Product p ON c.Product_ID = p.Product_ID
+            #     JOIN Warehouse w ON p.Product_ID = w.Product_ID
+            #     WHERE c.Cart_ID = %s AND c.Customer_ID = %s
+            # """, (cart_id, customer_id))
+            # cart_items = cursor.fetchall()
+            # total = sum(item['Quantity'] * item['Price'] for item in cart_items)
+            
             cursor.execute("""
-                SELECT c.Product_ID, c.Quantity, p.Price, p.Name, w.Pincode AS Warehouse_ID
+                SELECT p.Product_ID, p.Name, c.Price, c.Quantity
                 FROM Cart c
                 JOIN Product p ON c.Product_ID = p.Product_ID
-                JOIN Warehouse w ON p.Product_ID = w.Product_ID
-                WHERE c.Cart_ID = %s AND c.Customer_ID = %s
-            """, (cart_id, customer_id))
+                WHERE c.Customer_ID = %s
+            """, (customer_id,))
             cart_items = cursor.fetchall()
-            total = sum(item['Quantity'] * item['Price'] for item in cart_items)
+            total = sum(item['Price'] * item['Quantity'] for item in cart_items)
+            
+            # cart_items = session['cart']
+            # total = 0
 
-            # print(cart_items)
+
+            print(cart_items)
             # print(cart_id)
             # print(customer_id)
             # cursor.execute("UPDATE Payment SET Status = 'Completed' WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))
@@ -822,23 +859,37 @@ def checkout():
             for item in cart_items:
                 print("hi im there")
                 print("item", item)
-                try:
-                    cursor.execute("""
-                        UPDATE Warehouse AS w
-                        SET w.Warehouse_Quantity = w.Warehouse_Quantity - %s
-                        WHERE w.Product_ID = %s AND w.Pincode = %s AND w.Warehouse_Quantity >= %s
-                    """, (item['Quantity'], item['Product_ID'], item['Warehouse_ID'], item['Quantity']))
-                    print(f"eachitem: {item}")
+                if(item['Quantity'] == 0):
+                    # cursor.execute("""
+                    #     DELETE FROM Cart
+                    #     WHERE Cart_ID = %s AND Customer_ID = %s AND Product_ID = %s
+                    # """, (cart_id, customer_id, item['Product_ID']))
                     
-                    # Insert into Orders table
-                    cursor.execute("""
-                        INSERT INTO Orders (Order_ID, Customer_ID, Payment_ID, Product_ID, Quantity)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (order_id, customer_id, payment_id, item['Product_ID'], item['Quantity']))
-                    print("done")
-                except:
+                    # # Remove the product from the session cart
+                    # if 'cart' in session and item['Product_ID'] in session['cart']:
+                    #     del session['cart'][item['Product_ID']]
+                    #     session.modified = True
                     
-                    pass
+                    # # Update the cart count in the session
+                    # session['cart_count'] -= item['Quantity']
+                    
+                    # print(session['cart'])
+                    raise Exception("Product not in stock")
+                
+                cursor.execute("""
+                    UPDATE Warehouse AS w
+                    SET w.Warehouse_Quantity = w.Warehouse_Quantity - %s
+                    WHERE w.Product_ID = %s AND w.Pincode = %s AND w.Warehouse_Quantity >= %s
+                """, (item['Quantity'], item['Product_ID'], session['nearest_warehouse_id'], item['Quantity']))
+                print(f"eachitem: {item}")
+                
+                # Insert into Orders table
+                cursor.execute("""
+                    INSERT INTO Orders (Order_ID, Customer_ID, Payment_ID, Product_ID, Quantity)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (order_id, customer_id, payment_id, item['Product_ID'], item['Quantity']))
+                print("done")
+
                 
             cursor.execute("UPDATE Payment SET Status = 'Completed' WHERE Cart_ID = %s AND Customer_ID = %s", (cart_id, customer_id))
 
@@ -851,7 +902,7 @@ def checkout():
             session['cart_count'] = 0
 
             conn.commit()
-            flash('Order placed successfully!', 'success')
+            # flash('Order placed successfully!', 'success')
 
             print("session",session)
             payment_method = request.form['payment_method']
@@ -862,23 +913,23 @@ def checkout():
         except MySQLError as err:
             conn.rollback()
             print(err)
-            flash('A database error occurred. Please try again.', 'error')
+            # flash('A database error occurred. Please try again.', 'error')
             
             cursor.execute("UPDATE Payment SET Status = 'Failed' WHERE Cart_ID = %s AND Customer_ID = %s",
                            (cart_id, customer_id))
             conn.commit()
             
-            return redirect(url_for('checkout'))
-        except ValueError as ve:
+            return render_template('receipt_failed.html', error_message=str(err))
+        except Exception as ve:
             print(ve)
             conn.rollback()
-            flash(str(ve), 'error')
+            # flash(str(ve), 'error')
             
             cursor.execute("UPDATE Payment SET Status = 'Failed' WHERE Cart_ID = %s AND Customer_ID = %s",
                            (cart_id, customer_id))
             conn.commit()
             
-            return redirect(url_for('checkout'))
+            return render_template('receipt_failed.html', error_message=str(ve))
         finally:
             cursor.execute("UNLOCK TABLES;")
             cursor.close()
@@ -1054,7 +1105,7 @@ def edit_product(product_id):
 @app.route('/warehouse/analytics')
 def warehouse_analytics():
     if 'manager_id' not in session:
-        return redirect(url_for('warehouse_manager_login'))
+        return redirect(url_for('warehouse_login'))
 
     manager_pincode = session['manager_pincode']
 
