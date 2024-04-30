@@ -2,7 +2,7 @@
 
 This project is an online retail store for Gada Electronics, allowing customers to browse and purchase electronic products.
 It includes modules for customers to sign up, view products, manage addresses, add items to the cart, and complete purchases.
-Additionally, there's a warehouse manager module for managing product inventory.
+Additionally, there's a warehouse manager module for managing product inventory and vieing the product analytics.
 
 ## File Structure
 
@@ -71,6 +71,10 @@ web/
 
 4. **Access the Application**:
    - Open a web browser and go to `http://localhost:5000` to access the application.
+
+## License
+
+This repository is licensed under the [MIT License](LICENSE).
 
 ## Contributors
 
