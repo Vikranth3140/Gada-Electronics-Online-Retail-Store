@@ -33,15 +33,18 @@
                             </tr>
                         </thead>
                         <tbody>
+                            {% for product in order.Products %}
                             <tr>
-                                <td>{{ order.Product_ID }}</td>
-                                <td>{{ order.Product_Name }}</td>
-                                <td>{{ order.Quantity }}</td>
-                                <td>${{ '%.2f' | format(order.Price) }}</td>
-                                <td>${{ '%.2f' | format(order.Total_Price) }}</td>
+                                <td>{{ product.Product_ID }}</td>
+                                <td>{{ product.Product_Name }}</td>
+                                <td>{{ product.Quantity }}</td>
+                                <td>${{ '%.2f' | format(product.Price) }}</td>
+                                <td>${{ '%.2f' | format(product.Total_Price) }}</td>
                             </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
+                    <p><strong>Order Total:</strong> ${{ '%.2f' | format(order.Total_Price) }}</p>
                 </div>
             </div>
         </div>
